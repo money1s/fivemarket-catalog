@@ -12,6 +12,9 @@ locale: "uk"
 media_folder: "public/uploads"
 public_folder: "/uploads"
 publish_mode: editorial_workflow
+media_library:
+  config:
+    multiple: true
 
 collections:
   - name: "products"
@@ -70,6 +73,11 @@ collections:
         widget: "list"
         min: 3
         max: 5
+        default:
+          - "Додайте у коших всі необхідні товари"
+          - "Оформіть замовлення. Ім`я та номер телефону"
+          - "Очікуйте дзвінок від менеджера"
+          - "Отримайте на пошті та вирощуйте"
         field:
           label: "Крок"
           name: "step"
@@ -84,6 +92,9 @@ collections:
           label: "Фото"
           name: "image"
           widget: "image"
+          media_library:
+            config:
+              multiple: true
       - label: "Активний"
         name: "is_active"
         widget: "boolean"
