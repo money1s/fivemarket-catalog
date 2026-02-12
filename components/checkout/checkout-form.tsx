@@ -89,43 +89,16 @@ export function CheckoutForm() {
         >
           <div className="space-y-1.5">
             <label htmlFor="name" className="text-sm font-semibold">
-              Ім&apos;я
+              Повне ім&apos;я
             </label>
-            <Input id="name" name="name" autoComplete="name" required />
+            <Input id="name" name="name" autoComplete="name" placeholder="Вкажіть ваше ім'я" required />
           </div>
 
           <div className="space-y-1.5">
             <label htmlFor="phone" className="text-sm font-semibold">
-              Телефон
+              Номер телефону
             </label>
-            <Input id="phone" name="phone" type="tel" autoComplete="tel" required />
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="city" className="text-sm font-semibold">
-              Місто
-            </label>
-            <Input id="city" name="city" autoComplete="address-level2" required />
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="office_address" className="text-sm font-semibold">
-              Відділення/Адреса
-            </label>
-            <Input id="office_address" name="office_address" autoComplete="street-address" required />
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="comment" className="text-sm font-semibold">
-              Коментар
-            </label>
-            <textarea
-              id="comment"
-              name="comment"
-              rows={4}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              placeholder="Наприклад: дзвонити після 18:00"
-            />
+            <Input id="phone" name="phone" type="tel" autoComplete="tel" placeholder="+380..." required />
           </div>
 
           <input type="hidden" name="price" value={total} />
@@ -135,6 +108,9 @@ export function CheckoutForm() {
           <input type="hidden" name="office" value="9" />
           <input type="hidden" name="quantity" value={totalQty} />
           <input type="hidden" name="order_items" value={orderItemsValue} />
+          <input type="hidden" name="city" value="" />
+          <input type="hidden" name="office_address" value="" />
+          <input type="hidden" name="comment" value="" />
           <input type="hidden" name="utm_source" value={utmData.utm_source || ""} />
           <input type="hidden" name="utm_campaign" value={utmData.utm_campaign || ""} />
           <input type="hidden" name="utm_content" value={utmData.utm_content || ""} />

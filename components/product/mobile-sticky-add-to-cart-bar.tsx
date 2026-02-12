@@ -21,7 +21,12 @@ export function MobileStickyAddToCartBar({ product }: MobileStickyAddToCartBarPr
           <p className="truncate text-sm font-semibold">{product.title_ua}</p>
           <p className="text-sm font-bold text-primary">{formatUah(product.price_uah)}</p>
         </div>
-        <AddToCartButton product={product} label="Оформити замовлення" className="ml-auto" />
+        <AddToCartButton
+          product={product}
+          label="Оформити замовлення"
+          checkoutAfterAdd
+          className="ml-auto"
+        />
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { AddToCartFlyAnimation } from "@/components/cart/add-to-cart-fly-animation";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { HeaderNav } from "@/components/layout/header-nav";
 import { captureUtmFromLocation } from "@/lib/utm";
@@ -19,6 +20,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <>
       <HeaderNav onOpenCart={() => setIsCartOpen(true)} />
+      <AddToCartFlyAnimation />
       <main id="main-content" className="min-h-screen pb-20 pt-[6.95rem]">
         {children}
       </main>

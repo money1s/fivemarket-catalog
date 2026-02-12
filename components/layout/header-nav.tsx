@@ -35,6 +35,7 @@ export function HeaderNav({ onOpenCart }: HeaderNavProps) {
             variant="secondary"
             size="icon"
             className="relative h-10 w-10 bg-white text-primary hover:bg-white/90"
+            data-cart-anchor="true"
             onClick={onOpenCart}
             aria-label="Відкрити кошик"
           >
