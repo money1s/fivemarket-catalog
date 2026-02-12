@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-label="Саджанець полуниці Альбіон">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FEE2E2" />
+      <stop offset="100%" stop-color="#F87171" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="1200" fill="url(#g)" />
+  <circle cx="1020" cy="180" r="130" fill="#ffffff33" />
+  <circle cx="180" cy="980" r="180" fill="#ffffff22" />
+  <rect x="120" y="860" width="960" height="220" rx="36" fill="#ffffffcc" />
+  <text x="600" y="950" text-anchor="middle" font-family="Rubik, sans-serif" font-size="56" fill="#1f3a24">Саджанець полуниці Альбіон</text>
+  <text x="600" y="1020" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-size="34" fill="#355e3b">FiveMarket</text>
+</svg>

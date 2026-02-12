@@ -1,0 +1,93 @@
+backend:
+  name: git-gateway
+  branch: main
+
+# Щоб переключитись на GitHub backend, закоментуйте блок вище і використайте:
+# backend:
+#   name: github
+#   repo: your-user/your-repo
+#   branch: main
+
+locale: "uk"
+media_folder: "public/uploads"
+public_folder: "/uploads"
+publish_mode: editorial_workflow
+
+collections:
+  - name: "products"
+    label: "Товари"
+    label_singular: "Товар"
+    folder: "content/products"
+    create: true
+    extension: "md"
+    format: "frontmatter"
+    slug: "{{slug}}"
+    fields:
+      - label: "Назва (UA)"
+        name: "title_ua"
+        widget: "string"
+      - label: "Slug"
+        name: "slug"
+        widget: "string"
+        hint: "Латиниця, дефіси, без пробілів"
+      - label: "Категорія"
+        name: "category"
+        widget: "select"
+        options:
+          - label: "Саджанці"
+            value: "sadzhantsi"
+          - label: "Насіння"
+            value: "nasinnia"
+      - label: "Ціна, грн"
+        name: "price_uah"
+        widget: "number"
+        value_type: "int"
+        min: 1
+      - label: "CRM ID"
+        name: "crm_id"
+        widget: "number"
+        value_type: "int"
+        min: 0
+      - label: "Рейтинг Facebook"
+        name: "rating_fb"
+        widget: "number"
+        value_type: "float"
+        default: 4.7
+        min: 0
+        max: 5
+        step: 0.1
+      - label: "Переваги"
+        name: "benefits"
+        widget: "list"
+        min: 1
+        max: 8
+        field:
+          label: "Перевага"
+          name: "item"
+          widget: "string"
+      - label: "Як замовити"
+        name: "how_to_order"
+        widget: "list"
+        min: 3
+        max: 5
+        field:
+          label: "Крок"
+          name: "step"
+          widget: "string"
+      - label: "Зображення (до 5)"
+        name: "images"
+        widget: "list"
+        min: 1
+        max: 5
+        hint: "Максимум 5 зображень"
+        field:
+          label: "Фото"
+          name: "image"
+          widget: "image"
+      - label: "Активний"
+        name: "is_active"
+        widget: "boolean"
+        default: true
+      - label: "Опис"
+        name: "body"
+        widget: "markdown"
