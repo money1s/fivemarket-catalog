@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "@fontsource/rubik/500.css";
 import "@fontsource/rubik/700.css";
 import "@fontsource/rubik/800.css";
@@ -41,6 +42,20 @@ export default function RootLayout({
   return (
     <html lang="uk">
       <body>
+        <Script id="netlify-identity-hash-redirect" strategy="beforeInteractive">
+          {`(function () {
+            try {
+              var hash = window.location.hash || "";
+              var identityTokenKeys = ["invite_token=", "recovery_token=", "confirmation_token="];
+              var hasIdentityToken = identityTokenKeys.some(function (key) {
+                return hash.indexOf(key) !== -1;
+              });
+              if (hasIdentityToken && window.location.pathname.indexOf("/admin") !== 0) {
+                window.location.replace("/admin/" + hash);
+              }
+            } catch (e) {}
+          })();`}
+        </Script>
         <PixelNoScript />
         <PixelScripts />
         <a
