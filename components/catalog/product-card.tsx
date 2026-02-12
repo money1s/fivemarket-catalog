@@ -27,7 +27,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           priority={priority}
         />
       </div>
-      <div className="space-y-3 p-3">
+      <div className="space-y-2.5 p-3">
         <div>
           <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             {CATEGORY_LABELS[product.category]}
@@ -36,8 +36,8 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           <p className="mt-1 font-heading text-lg font-bold text-primary">{formatUah(product.price_uah)}</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-2">
-          <Button asChild variant="outline" className="w-full">
+        <div className="grid grid-cols-1 gap-1.5">
+          <Button asChild size="sm" variant="outline" className="w-full min-h-9 rounded-md">
             <Link href={`/p/${product.slug}`}>Детальніше</Link>
           </Button>
           <AddToCartButton
@@ -48,7 +48,8 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               crm_id: product.crm_id,
               image: coverImage,
             }}
-            className="w-full"
+            size="sm"
+            className="w-full min-h-9 rounded-md"
           />
         </div>
       </div>
