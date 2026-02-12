@@ -13,9 +13,10 @@ interface AddToCartButtonProps extends Omit<ButtonProps, "onClick"> {
     crm_id: number;
     image: string;
   };
+  label?: string;
 }
 
-export function AddToCartButton({ product, className, ...props }: AddToCartButtonProps) {
+export function AddToCartButton({ product, className, label = "Додати до кошика", ...props }: AddToCartButtonProps) {
   const addItem = useCartStore((state) => state.addItem);
 
   return (
@@ -34,7 +35,7 @@ export function AddToCartButton({ product, className, ...props }: AddToCartButto
       {...props}
     >
       <ShoppingCart className="mr-2 h-4 w-4" />
-      Додати до кошика
+      {label}
     </Button>
   );
 }
