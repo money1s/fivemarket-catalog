@@ -54,6 +54,34 @@ export function ProductGalleryCarousel({ images, title }: ProductGalleryCarousel
         </div>
       </div>
 
+      <div className="mt-3 overflow-x-auto pb-1">
+        <div className="flex min-w-max items-center gap-2">
+          {normalizedImages.map((image, index) => (
+            <button
+              key={`thumb-${image}-${index}`}
+              type="button"
+              className={cn(
+                "relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                selectedIndex === index
+                  ? "border-primary shadow-[0_0_0_2px_hsl(var(--primary)/0.15)]"
+                  : "border-border/80 opacity-80 hover:opacity-100",
+              )}
+              onClick={() => emblaApi?.scrollTo(index)}
+              aria-label={`Перейти до фото ${index + 1}`}
+              aria-current={selectedIndex === index}
+            >
+              <Image
+                src={image}
+                alt={`${title} мініатюра ${index + 1}`}
+                fill
+                className="object-cover"
+                sizes="64px"
+              />
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="mt-3 flex items-center justify-center gap-2">
         {normalizedImages.map((_, index) => (
           <button
