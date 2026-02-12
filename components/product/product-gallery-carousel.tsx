@@ -54,14 +54,14 @@ export function ProductGalleryCarousel({ images, title }: ProductGalleryCarousel
         </div>
       </div>
 
-      <div className="mt-1 flex justify-center">
+      <div className="mt-0.5 flex justify-center">
         <div className="flex items-center justify-center gap-1.5">
           {normalizedImages.map((image, index) => (
             <button
               key={`thumb-${image}-${index}`}
               type="button"
               className={cn(
-                "relative h-12 w-12 shrink-0 overflow-hidden rounded-md border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "relative h-10 w-10 shrink-0 overflow-hidden rounded-sm border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 selectedIndex === index
                   ? "border-primary shadow-[0_0_0_2px_hsl(var(--primary)/0.15)]"
                   : "border-border/80 opacity-80 hover:opacity-100",
@@ -82,13 +82,13 @@ export function ProductGalleryCarousel({ images, title }: ProductGalleryCarousel
         </div>
       </div>
 
-      <div className="mt-0.5 flex items-center justify-center gap-2">
+      <div className="mt-0 flex items-center justify-center gap-1.5">
         {normalizedImages.map((_, index) => (
           <button
             key={index}
             type="button"
             className={cn(
-              "h-2.5 w-2.5 rounded-full transition-colors",
+              "h-2 w-2 rounded-full transition-colors",
               selectedIndex === index ? "bg-primary" : "bg-border",
             )}
             onClick={() => emblaApi?.scrollTo(index)}

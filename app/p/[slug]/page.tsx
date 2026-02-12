@@ -101,7 +101,7 @@ export default function ProductPage({ params }: ProductPageProps) {
       />
 
       <div className="rounded-2xl border border-border bg-card p-4 shadow-soft">
-        <div className="grid gap-4 md:grid-cols-[1.1fr_1fr] md:items-start">
+        <div className="grid gap-2 md:grid-cols-[1.1fr_1fr] md:items-start md:gap-4">
           <ProductGalleryCarousel images={product.images} title={product.title_ua} />
 
           <div className="space-y-4">

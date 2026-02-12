@@ -19,7 +19,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <>
       <HeaderNav onOpenCart={() => setIsCartOpen(true)} />
-      <main id="main-content" className="min-h-screen pb-20 pt-[8.1rem]">
+      <main id="main-content" className="min-h-screen pb-20 pt-[6.95rem]">
         {children}
       </main>
       <footer className="border-t border-border/80 bg-secondary/50 py-6">
