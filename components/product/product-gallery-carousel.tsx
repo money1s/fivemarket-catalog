@@ -54,7 +54,7 @@ export function ProductGalleryCarousel({ images, title }: ProductGalleryCarousel
         </div>
       </div>
 
-      <div className="mt-2 flex justify-center">
+      <div className="mt-1 flex justify-center">
         <div className="flex items-center justify-center gap-1.5">
           {normalizedImages.map((image, index) => (
             <button
@@ -82,7 +82,7 @@ export function ProductGalleryCarousel({ images, title }: ProductGalleryCarousel
         </div>
       </div>
 
-      <div className="mt-1.5 flex items-center justify-center gap-2">
+      <div className="mt-0.5 flex items-center justify-center gap-2">
         {normalizedImages.map((_, index) => (
           <button
             key={index}
