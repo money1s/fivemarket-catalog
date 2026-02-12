@@ -16,7 +16,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   const coverImage = product.images[0] || "/uploads/placeholder-garden.svg";
 
   return (
-    <Card className="overflow-hidden rounded-xl border-border/90">
+    <Card className="h-full overflow-hidden rounded-xl border-border/90">
       <div className="relative aspect-square w-full bg-muted">
         <Image
           src={coverImage}
@@ -27,16 +27,16 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           priority={priority}
         />
       </div>
-      <div className="space-y-2.5 p-3">
-        <div>
+      <div className="flex h-full flex-col space-y-2.5 p-3">
+        <div className="min-h-[6.5rem]">
           <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             {CATEGORY_LABELS[product.category]}
           </p>
-          <h3 className="line-clamp-2 text-sm font-semibold leading-snug">{product.title_ua}</h3>
+          <h3 className="line-clamp-2 min-h-[2.8rem] text-sm font-semibold leading-snug">{product.title_ua}</h3>
           <p className="mt-1 font-heading text-lg font-bold text-primary">{formatUah(product.price_uah)}</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-1.5">
+        <div className="mt-auto grid grid-cols-1 gap-1.5">
           <Button asChild size="sm" variant="outline" className="w-full min-h-9 rounded-md">
             <Link href={`/p/${product.slug}`}>Детальніше</Link>
           </Button>
