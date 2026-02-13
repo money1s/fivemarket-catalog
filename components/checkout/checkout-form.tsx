@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { buildLpCrmProductsPayload, buildOrderItemsString, generateOrderId } from "@/lib/order";
+import {
+  buildLpCrmProductsPayload,
+  buildLpCrmSenderPayload,
+  buildOrderItemsString,
+  generateOrderId,
+} from "@/lib/order";
 import { formatUah } from "@/lib/format";
 import { trackInitiateCheckout } from "@/lib/pixels";
 import { calcTotalPrice, calcTotalQty, useCartStore } from "@/lib/store/cart-store";
@@ -28,7 +33,10 @@ export function CheckoutForm() {
   const [userIp, setUserIp] = useState("");
   const [utmData, setUtmData] = useState<UtmData>({});
   const [siteOrigin, setSiteOrigin] = useState("");
-  const [senderInfo, setSenderInfo] = useState("");
+  const [siteHost, setSiteHost] = useState("");
+  const [requestUri, setRequestUri] = useState("");
+  const [referrer, setReferrer] = useState("");
+  const [userAgent, setUserAgent] = useState("");
   const [orderId, setOrderId] = useState("");
   const hasTrackedRef = useRef(false);
 
@@ -41,6 +49,17 @@ export function CheckoutForm() {
   const firstCrmId = items[0]?.crm_id ?? 0;
   const isCrmReady = CRM_ACTION.length > 0 && CRM_API_KEY.length > 0;
   const canSubmit = isCrmReady && orderId.length > 0;
+  const senderInfo = useMemo(
+    () =>
+      buildLpCrmSenderPayload({
+        host: siteHost,
+        requestUri,
+        remoteAddr: userIp,
+        referrer,
+        userAgent,
+      }),
+    [referrer, requestUri, siteHost, userAgent, userIp]
+  );
   const thanksUrl = useMemo(() => {
     if (!siteOrigin) {
       return "";
@@ -68,15 +87,13 @@ export function CheckoutForm() {
     setUtmData(getStoredUtm());
 
     if (typeof window !== "undefined") {
+      const location = window.location;
       setSiteOrigin(window.location.origin);
+      setSiteHost(window.location.host);
+      setRequestUri(`${location.pathname}${location.search || ""}`);
+      setReferrer(document.referrer);
+      setUserAgent(window.navigator.userAgent);
       setOrderId(generateOrderId());
-      setSenderInfo(
-        JSON.stringify({
-          href: window.location.href,
-          referrer: document.referrer,
-          ua: window.navigator.userAgent,
-        })
-      );
     }
 
     fetch("https://api.ipify.org?format=json")
