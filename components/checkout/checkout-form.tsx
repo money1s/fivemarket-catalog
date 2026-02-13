@@ -15,6 +15,7 @@ import { trackInitiateCheckout } from "@/lib/pixels";
 import { calcTotalPrice, calcTotalQty, useCartStore } from "@/lib/store/cart-store";
 import { getStoredUtm, UtmData } from "@/lib/utm";
 
+const ORDER_SUBMIT_ACTION = process.env.NEXT_PUBLIC_ORDER_SUBMIT_ACTION || "/.netlify/functions/create-order";
 const CRM_ACTION = process.env.NEXT_PUBLIC_CRM_FORM_ACTION || "";
 const CRM_API_KEY = process.env.NEXT_PUBLIC_CRM_API_KEY || "";
 const CRM_OFFICE = process.env.NEXT_PUBLIC_CRM_OFFICE || "9";
@@ -42,13 +43,24 @@ export function CheckoutForm() {
 
   const orderItemsValue = useMemo(() => buildOrderItemsString(items), [items]);
   const lpCrmProducts = useMemo(() => buildLpCrmProductsPayload(items), [items]);
+  const cartItemsPayload = useMemo(
+    () =>
+      JSON.stringify(
+        items.map((item) => ({
+          crm_id: item.crm_id,
+          price_uah: item.price_uah,
+          quantity: item.quantity,
+          title_ua: item.title_ua,
+        }))
+      ),
+    [items]
+  );
   const itemNamesList = useMemo(
     () => items.map((item) => `${item.title_ua} x${item.quantity}`).join(", "),
     [items]
   );
   const firstCrmId = items[0]?.crm_id ?? 0;
-  const isCrmReady = CRM_ACTION.length > 0 && CRM_API_KEY.length > 0;
-  const canSubmit = isCrmReady && orderId.length > 0;
+  const canSubmit = orderId.length > 0;
   const senderInfo = useMemo(
     () =>
       buildLpCrmSenderPayload({
@@ -148,14 +160,9 @@ export function CheckoutForm() {
 
         <form
           method="POST"
-          action={CRM_ACTION}
+          action={ORDER_SUBMIT_ACTION}
           className="space-y-4"
-          onSubmit={(event) => {
-            if (!isCrmReady) {
-              event.preventDefault();
-              return;
-            }
-
+          onSubmit={() => {
             if (typeof window !== "undefined") {
               window.sessionStorage.setItem("fm_last_order_total", String(total));
               window.sessionStorage.setItem("fm_last_order_qty", String(totalQty));
@@ -199,6 +206,8 @@ export function CheckoutForm() {
           <input type="hidden" name="key" value={CRM_API_KEY} />
           <input type="hidden" name="order_id" value={orderId} />
           <input type="hidden" name="products" value={lpCrmProducts} />
+          <input type="hidden" name="cart_items" value={cartItemsPayload} />
+          <input type="hidden" name="crm_action" value={CRM_ACTION} />
           <input type="hidden" name="email" value={CRM_DEFAULT_EMAIL} />
           <input type="hidden" name="delivery" value={CRM_DELIVERY_ID} />
           <input type="hidden" name="delivery_adress" value="" />
@@ -224,12 +233,6 @@ export function CheckoutForm() {
           <input type="hidden" name="success_url" value={thanksUrl} />
           <input type="hidden" name="redirect" value={thanksUrl} />
           <input type="hidden" name="success_redirect" value={thanksUrl} />
-
-          {!isCrmReady ? (
-            <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-              Налаштуйте `NEXT_PUBLIC_CRM_FORM_ACTION` і `NEXT_PUBLIC_CRM_API_KEY`, щоб надсилати заявки в CRM.
-            </p>
-          ) : null}
 
           <Button type="submit" size="lg" className="w-full" disabled={!canSubmit}>
             Оформити замовлення

@@ -97,13 +97,23 @@ backend:
 
 Після цього Decap CMS комітитиме зміни напряму через GitHub backend.
 
-## CRM form action (без сервера)
+## CRM інтеграція (через Netlify Function)
 
-Checkout працює через звичайний HTML POST form.
+Щоб уникнути попередження браузера про небезпечну форму (`https -> http`) та завжди повертати користувача на сторінку подяки сайту, checkout відправляє форму у serverless endpoint:
+- `/.netlify/functions/create-order`
 
-Задайте CRM параметри у `.env`:
+Функція вже додана у:
+- `/Users/andrii/Desktop/fivemarket/netlify/functions/create-order.js`
+
+Netlify конфіг:
+- `/Users/andrii/Desktop/fivemarket/netlify.toml`
+
+Налаштуйте `.env` (або Netlify Environment variables):
 
 ```env
+NEXT_PUBLIC_ORDER_SUBMIT_ACTION=/.netlify/functions/create-order
+
+# публічні (fallback)
 NEXT_PUBLIC_CRM_FORM_ACTION=http://your-subdomain.lp-crm.biz/api/addNewOrder.html
 NEXT_PUBLIC_CRM_API_KEY=your_api_key
 NEXT_PUBLIC_CRM_OFFICE=9
@@ -111,17 +121,24 @@ NEXT_PUBLIC_CRM_COUNTRY=UA
 NEXT_PUBLIC_CRM_DELIVERY_ID=1
 NEXT_PUBLIC_CRM_PAYMENT_ID=4
 NEXT_PUBLIC_CRM_DEFAULT_EMAIL=
+
+# серверні (рекомендовано)
+CRM_ORDER_ENDPOINT=http://your-subdomain.lp-crm.biz/api/addNewOrder.html
+CRM_API_KEY=your_api_key
+CRM_OFFICE=9
+CRM_COUNTRY=UA
+CRM_DELIVERY_ID=1
+CRM_PAYMENT_ID=4
+CRM_DEFAULT_EMAIL=
 ```
 
-Форма передає hidden-поля (LP CRM + сумісні):
-- LP CRM: `key`, `order_id`, `products`, `bayer_name`, `phone`, `delivery`, `delivery_adress`, `payment`, `country`, `office`
-- Додатково: `price`, `id`, `quantity`, `user_ip`, `order_items`, `comment`, `product_name`
+Форма передає у функцію та далі в CRM:
+- LP CRM: `key`, `order_id`, `products`, `bayer_name`, `phone`, `delivery`, `delivery_adress`, `payment`, `country`, `office`, `sender`
+- Додатково: `price`, `id`, `quantity`, `user_ip`, `order_items`, `comment`, `product_name`, `cart_items`
 - UTM: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`
-- Redirect на сторінку подяки: `success_url`, `redirect`, `success_redirect`
+- Redirect після відправки: `success_url`, `redirect`, `success_redirect`
 
-`products` формується автоматично зі всієї корзини (кожен товар містить `product_id=crm_id`, `price`, `count`), тому в CRM відправляється мульти-товарне замовлення, а не один товар.
-
-Важливо: у static/no-backend режимі `NEXT_PUBLIC_CRM_API_KEY` буде видимий на клієнті. Використовуйте окремий ключ з мінімально необхідними правами.
+`products` формується зі всієї корзини у форматі LP CRM (`product_id=crm_id`, `price`, `count`) для кожного товару.
 
 ## Де редагувати товари
 
