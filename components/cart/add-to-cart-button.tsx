@@ -31,12 +31,38 @@ export function AddToCartButton({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
 
+  const animateButtonStart = () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    buttonRef.current?.animate(
+      [
+        { transform: "translateX(0px) translateY(0px) scale(1)" },
+        { transform: "translateX(-2px) translateY(1px) scale(0.98)" },
+        { transform: "translateX(2px) translateY(-1px) scale(1.04)" },
+        { transform: "translateX(-1px) translateY(0px) scale(1.01)" },
+        { transform: "translateX(0px) translateY(0px) scale(1)" },
+      ],
+      {
+        duration: 460,
+        easing: "cubic-bezier(0.2, 0.9, 0.2, 1)",
+      }
+    );
+  };
+
   return (
     <Button
       ref={buttonRef}
       type="button"
       className={className}
       onClick={() => {
+        animateButtonStart();
+
         const buttonRect = buttonRef.current?.getBoundingClientRect();
         if (buttonRect) {
           dispatchAddToCartAnimation({

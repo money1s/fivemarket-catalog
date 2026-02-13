@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { ShoppingCart } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
+import { CART_ICON_BOUNCE_EVENT } from "@/lib/cart-animation";
 import { CATEGORY_TABS } from "@/lib/constants";
 import { calcTotalQty, useCartStore } from "@/lib/store/cart-store";
 import { Button } from "@/components/ui/button";
@@ -15,12 +17,40 @@ export function HeaderNav({ onOpenCart }: HeaderNavProps) {
   const pathname = usePathname();
   const router = useRouter();
   const cartQty = useCartStore((state) => calcTotalQty(state.items));
+  const cartButtonRef = useRef<HTMLButtonElement>(null);
 
   const currentCategory = pathname.startsWith("/sadzhantsi")
     ? "sadzhantsi"
     : pathname.startsWith("/nasinnia")
       ? "nasinnia"
       : "all";
+
+  useEffect(() => {
+    const onCartIconBounce = () => {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        return;
+      }
+
+      cartButtonRef.current?.animate(
+        [
+          { transform: "translateY(0px) scale(1)" },
+          { transform: "translateY(-3px) scale(1.14)" },
+          { transform: "translateY(0px) scale(0.93)" },
+          { transform: "translateY(-1px) scale(1.05)" },
+          { transform: "translateY(0px) scale(1)" },
+        ],
+        {
+          duration: 560,
+          easing: "cubic-bezier(0.2, 0.85, 0.22, 1)",
+        }
+      );
+    };
+
+    window.addEventListener(CART_ICON_BOUNCE_EVENT, onCartIconBounce);
+    return () => {
+      window.removeEventListener(CART_ICON_BOUNCE_EVENT, onCartIconBounce);
+    };
+  }, []);
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-primary/30 bg-primary text-primary-foreground shadow-soft">
@@ -31,6 +61,7 @@ export function HeaderNav({ onOpenCart }: HeaderNavProps) {
             <p className="text-[11px] text-primary-foreground/80">Насіння та саджанці для вашого саду</p>
           </div>
           <Button
+            ref={cartButtonRef}
             type="button"
             variant="secondary"
             size="icon"
