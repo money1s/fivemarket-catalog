@@ -7,6 +7,16 @@ function phpSerializeAssoc(entries) {
   return `a:${entries.length}:{${entries.map(([key, value]) => `${phpSerializeString(key)}${phpSerializeString(value)}`).join("")}}`;
 }
 
+function phpUrlEncode(value) {
+  return encodeURIComponent(String(value ?? ""))
+    .replace(/!/g, "%21")
+    .replace(/'/g, "%27")
+    .replace(/\(/g, "%28")
+    .replace(/\)/g, "%29")
+    .replace(/\*/g, "%2A")
+    .replace(/%20/g, "+");
+}
+
 function buildProductsPayloadFromCartItems(cartItemsRaw) {
   if (!cartItemsRaw) {
     return "";
@@ -88,7 +98,7 @@ function parseBody(event) {
 
 function appendIfPresent(params, key, value) {
   if (value !== undefined && value !== null && String(value).length > 0) {
-    params.set(key, String(value));
+    params.append(key, String(value));
   }
 }
 
@@ -134,21 +144,23 @@ exports.handler = async function handler(event) {
   const productsPayload =
     buildProductsPayloadFromCartItems(form.cart_items) || form.products || "";
   const senderPayload = buildSenderPayload(event, form.sender);
+  const encodedProductsPayload = phpUrlEncode(productsPayload);
+  const encodedSenderPayload = phpUrlEncode(senderPayload);
 
-  const crmParams = new URLSearchParams();
+  const crmParams = new FormData();
   appendIfPresent(crmParams, "key", crmApiKey);
   appendIfPresent(crmParams, "order_id", orderId);
   appendIfPresent(crmParams, "country", crmCountry);
   appendIfPresent(crmParams, "office", crmOffice);
-  appendIfPresent(crmParams, "products", productsPayload);
+  appendIfPresent(crmParams, "products", encodedProductsPayload);
   appendIfPresent(crmParams, "bayer_name", form.bayer_name || form.name || "");
   appendIfPresent(crmParams, "phone", form.phone || "");
   appendIfPresent(crmParams, "email", crmEmail);
-  appendIfPresent(crmParams, "comment", form.comment || form.product_name || "");
+  appendIfPresent(crmParams, "comment", form.comment || "");
   appendIfPresent(crmParams, "delivery", crmDelivery);
   appendIfPresent(crmParams, "delivery_adress", form.delivery_adress || form.office_address || "");
   appendIfPresent(crmParams, "payment", crmPayment);
-  appendIfPresent(crmParams, "sender", senderPayload);
+  appendIfPresent(crmParams, "sender", encodedSenderPayload);
   appendIfPresent(crmParams, "utm_source", form.utm_source || "");
   appendIfPresent(crmParams, "utm_medium", form.utm_medium || "");
   appendIfPresent(crmParams, "utm_term", form.utm_term || "");
@@ -163,7 +175,6 @@ exports.handler = async function handler(event) {
   appendIfPresent(crmParams, "id", form.id || "");
   appendIfPresent(crmParams, "quantity", form.quantity || "");
   appendIfPresent(crmParams, "order_items", form.order_items || "");
-  appendIfPresent(crmParams, "product_name", form.product_name || "");
   appendIfPresent(crmParams, "user_ip", form.user_ip || "");
 
   let crmOk = false;
@@ -172,8 +183,7 @@ exports.handler = async function handler(event) {
   try {
     const crmResponse = await fetch(crmEndpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: crmParams.toString(),
+      body: crmParams,
     });
     crmResponseText = await crmResponse.text();
 

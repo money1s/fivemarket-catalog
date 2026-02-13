@@ -55,10 +55,6 @@ export function CheckoutForm() {
       ),
     [items]
   );
-  const itemNamesList = useMemo(
-    () => items.map((item) => `${item.title_ua} x${item.quantity}`).join(", "),
-    [items]
-  );
   const firstCrmId = items[0]?.crm_id ?? 0;
   const canSubmit = orderId.length > 0;
   const senderInfo = useMemo(
@@ -221,10 +217,10 @@ export function CheckoutForm() {
           <input type="hidden" name="office" value={CRM_OFFICE} />
           <input type="hidden" name="quantity" value={totalQty} />
           <input type="hidden" name="order_items" value={orderItemsValue} />
-          <input type="hidden" name="product_name" value={itemNamesList} />
+          <input type="hidden" name="product_name" value="" />
           <input type="hidden" name="city" value="" />
           <input type="hidden" name="office_address" value="" />
-          <input type="hidden" name="comment" value={itemNamesList} />
+          <input type="hidden" name="comment" value="" />
           <input type="hidden" name="utm_source" value={utmData.utm_source || ""} />
           <input type="hidden" name="utm_medium" value={utmData.utm_medium || ""} />
           <input type="hidden" name="utm_campaign" value={utmData.utm_campaign || ""} />
