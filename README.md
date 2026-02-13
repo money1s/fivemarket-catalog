@@ -101,16 +101,27 @@ backend:
 
 Checkout працює через звичайний HTML POST form.
 
-Задайте URL CRM у `.env`:
+Задайте CRM параметри у `.env`:
 
 ```env
-NEXT_PUBLIC_CRM_FORM_ACTION=https://your-crm.example.com/orders
+NEXT_PUBLIC_CRM_FORM_ACTION=http://your-subdomain.lp-crm.biz/api/addNewOrder.html
+NEXT_PUBLIC_CRM_API_KEY=your_api_key
+NEXT_PUBLIC_CRM_OFFICE=9
+NEXT_PUBLIC_CRM_COUNTRY=UA
+NEXT_PUBLIC_CRM_DELIVERY_ID=1
+NEXT_PUBLIC_CRM_PAYMENT_ID=4
+NEXT_PUBLIC_CRM_DEFAULT_EMAIL=
 ```
 
-Форма передає hidden-поля:
-- `price`, `id`, `country=UA`, `user_ip`, `office=9`, `quantity`
-- `order_items` (title/qty/price/subtotal/crm_id)
-- `utm_source`, `utm_campaign`, `utm_content`, `utm_term`
+Форма передає hidden-поля (LP CRM + сумісні):
+- LP CRM: `key`, `order_id`, `products`, `bayer_name`, `phone`, `delivery`, `delivery_adress`, `payment`, `country`, `office`
+- Додатково: `price`, `id`, `quantity`, `user_ip`, `order_items`, `comment`, `product_name`
+- UTM: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`
+- Redirect на сторінку подяки: `success_url`, `redirect`, `success_redirect`
+
+`products` формується автоматично зі всієї корзини (кожен товар містить `product_id=crm_id`, `price`, `count`), тому в CRM відправляється мульти-товарне замовлення, а не один товар.
+
+Важливо: у static/no-backend режимі `NEXT_PUBLIC_CRM_API_KEY` буде видимий на клієнті. Використовуйте окремий ключ з мінімально необхідними правами.
 
 ## Де редагувати товари
 
@@ -138,4 +149,3 @@ NEXT_PUBLIC_CRM_FORM_ACTION=https://your-crm.example.com/orders
 - `/Users/andrii/Desktop/fivemarket/lib/products.ts` - парсер Markdown/frontmatter (включно з обмеженням images <= 5)
 - `/Users/andrii/Desktop/fivemarket/lib/pixels.ts` - universal pixel helper
 - `/Users/andrii/Desktop/fivemarket/components/checkout/checkout-form.tsx` - HTML POST checkout
-

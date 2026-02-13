@@ -1,4 +1,4 @@
-const UTM_KEYS = ["utm_source", "utm_campaign", "utm_content", "utm_term"] as const;
+const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
 
 type UtmKey = (typeof UTM_KEYS)[number];
 export type UtmData = Partial<Record<UtmKey, string>>;
