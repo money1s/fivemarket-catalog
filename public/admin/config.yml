@@ -12,9 +12,6 @@ locale: "uk"
 media_folder: "public/uploads"
 public_folder: "/uploads"
 publish_mode: editorial_workflow
-media_library:
-  config:
-    multiple: true
 
 collections:
   - name: "products"
