@@ -81,6 +81,10 @@ backend:
   branch: main
 ```
 
+CMS працює у режимі `publish_mode: editorial_workflow`, тому в адмінці доступні стани:
+- `Published` (опубліковані)
+- `Workflow -> Ready` (готові до деплою)
+
 ## Опційно: переключення Decap CMS на GitHub backend
 
 У файлі `/Users/andrii/Desktop/fivemarket/public/admin/config.yml`:
@@ -130,6 +134,9 @@ CRM_COUNTRY=UA
 CRM_DELIVERY_ID=1
 CRM_PAYMENT_ID=4
 CRM_DEFAULT_EMAIL=
+
+# ручний one-click deploy із /admin
+NETLIFY_BUILD_HOOK_URL=https://api.netlify.com/build_hooks/your-hook-id
 ```
 
 Форма передає у функцію та далі в CRM:
@@ -139,6 +146,28 @@ CRM_DEFAULT_EMAIL=
 - Redirect після відправки: `success_url`, `redirect`, `success_redirect`
 
 `products` формується зі всієї корзини у форматі LP CRM (`product_id=crm_id`, `price`, `count`) для кожного товару.
+
+## Як економити кредити Netlify
+
+У проєкті вже додано:
+- `/Users/andrii/Desktop/fivemarket/netlify.toml` -> `ignore = "bash scripts/netlify-ignore-build.sh"`
+- `/Users/andrii/Desktop/fivemarket/scripts/netlify-ignore-build.sh`
+
+Скрипт пропускає:
+- `deploy-preview` і `branch-deploy`
+- автоматичні `production` збірки від CMS-комітів
+
+Тобто зміни з CMS можна накопичувати, а потім випускати одним деплоєм.
+
+Рекомендований процес:
+1. Редагуйте товари в `Workflow`, переведіть потрібні картки у `Ready`.
+2. Публікуйте готові картки.
+3. Натискайте кнопку `1 деплой` у `/admin` (панель праворуч унизу), щоб запустити один production deploy на всю пачку змін.
+
+Як увімкнути кнопку `1 деплой`:
+1. Netlify -> Site configuration -> Build & deploy -> Build hooks -> `Add build hook`.
+2. Скопіюйте URL hook у змінну середовища `NETLIFY_BUILD_HOOK_URL`.
+3. Зробіть redeploy сайту один раз.
 
 ## Де редагувати товари
 
@@ -166,3 +195,7 @@ CRM_DEFAULT_EMAIL=
 - `/Users/andrii/Desktop/fivemarket/lib/products.ts` - парсер Markdown/frontmatter (включно з обмеженням images <= 5)
 - `/Users/andrii/Desktop/fivemarket/lib/pixels.ts` - universal pixel helper
 - `/Users/andrii/Desktop/fivemarket/components/checkout/checkout-form.tsx` - HTML POST checkout
+- `/Users/andrii/Desktop/fivemarket/public/admin/config.yml` - Decap CMS workflow + структурування списку товарів
+- `/Users/andrii/Desktop/fivemarket/public/admin/index.html` - панель `Workflow / 1 деплой` в адмінці
+- `/Users/andrii/Desktop/fivemarket/netlify/functions/manual-deploy.js` - secure trigger Netlify build hook (для авторизованого Identity користувача)
+- `/Users/andrii/Desktop/fivemarket/scripts/netlify-ignore-build.sh` - пропуск не-production збірок для економії кредитів

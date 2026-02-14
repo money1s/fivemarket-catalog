@@ -1,6 +1,12 @@
 backend:
   name: git-gateway
   branch: main
+  commit_messages:
+    create: "cms: create {{collection}} \"{{slug}}\""
+    update: "cms: update {{collection}} \"{{slug}}\""
+    delete: "cms: delete {{collection}} \"{{slug}}\""
+    uploadMedia: "cms: upload \"{{path}}\""
+    deleteMedia: "cms: delete \"{{path}}\""
 
 # Щоб переключитись на GitHub backend, закоментуйте блок вище і використайте:
 # backend:
@@ -11,7 +17,12 @@ backend:
 locale: "uk"
 media_folder: "public/uploads"
 public_folder: "/uploads"
-publish_mode: simple
+publish_mode: editorial_workflow
+
+slug:
+  encoding: "ascii"
+  clean_accents: true
+  sanitize_replacement: "-"
 
 collections:
   - name: "products"
@@ -22,6 +33,8 @@ collections:
     extension: "md"
     format: "frontmatter"
     slug: "{{slug}}"
+    sortable_fields: ["title_ua", "price_uah", "category", "crm_id"]
+    summary: "{{title_ua}} — {{price_uah}} грн"
     fields:
       - label: "Назва (UA)"
         name: "title_ua"

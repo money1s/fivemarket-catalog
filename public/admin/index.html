@@ -4,6 +4,66 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>FiveMarket CMS</title>
+    <style>
+      .fm-admin-tools {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 9999;
+        width: min(320px, calc(100vw - 32px));
+        border-radius: 14px;
+        border: 1px solid #c7d9c8;
+        background: #f8fbf8;
+        box-shadow: 0 10px 30px rgba(20, 42, 24, 0.16);
+        padding: 12px;
+        font-family: "Nunito Sans", Arial, sans-serif;
+        color: #1f3f29;
+      }
+      .fm-admin-tools h3 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .fm-admin-tools p {
+        margin: 6px 0 10px;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+      .fm-admin-tools__row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .fm-admin-tools button {
+        border: 0;
+        border-radius: 10px;
+        height: 34px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .fm-admin-tools__workflow {
+        background: #e3ece3;
+        color: #23462d;
+      }
+      .fm-admin-tools__deploy {
+        background: #2f8b42;
+        color: #ffffff;
+      }
+      .fm-admin-tools__status {
+        min-height: 18px;
+        margin-top: 8px;
+        font-size: 11px;
+        color: #3f6050;
+      }
+      @media (max-width: 800px) {
+        .fm-admin-tools {
+          right: 10px;
+          bottom: 10px;
+          width: min(300px, calc(100vw - 20px));
+        }
+      }
+    </style>
   </head>
   <body>
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
@@ -18,6 +78,81 @@
           }
         });
       }
+
+      (function setupAdminTools() {
+        const panel = document.createElement("aside");
+        panel.className = "fm-admin-tools";
+        panel.innerHTML = `
+          <h3>Економний режим деплою</h3>
+          <p>Працюйте через Workflow: <b>Ready</b> / <b>Published</b>. Коли все готово — запускайте один деплой.</p>
+          <div class="fm-admin-tools__row">
+            <button type="button" class="fm-admin-tools__workflow">Workflow</button>
+            <button type="button" class="fm-admin-tools__deploy">1 деплой</button>
+          </div>
+          <div class="fm-admin-tools__status" data-status></div>
+        `;
+        document.body.appendChild(panel);
+
+        const status = panel.querySelector("[data-status]");
+        const workflowBtn = panel.querySelector(".fm-admin-tools__workflow");
+        const deployBtn = panel.querySelector(".fm-admin-tools__deploy");
+
+        const setStatus = (text) => {
+          if (status) {
+            status.textContent = text;
+          }
+        };
+
+        workflowBtn?.addEventListener("click", () => {
+          window.location.hash = "#/workflow";
+        });
+
+        deployBtn?.addEventListener("click", async () => {
+          setStatus("Перевірка доступу...");
+          const user = window.netlifyIdentity && window.netlifyIdentity.currentUser
+            ? window.netlifyIdentity.currentUser()
+            : null;
+
+          if (!user) {
+            setStatus("Увійдіть в Netlify Identity, щоб запустити деплой.");
+            return;
+          }
+
+          let token = "";
+          try {
+            token = typeof user.jwt === "function"
+              ? await user.jwt(true)
+              : (user.token && user.token.access_token) || "";
+          } catch (error) {
+            token = (user.token && user.token.access_token) || "";
+          }
+
+          if (!token) {
+            setStatus("Не вдалося отримати токен доступу.");
+            return;
+          }
+
+          try {
+            setStatus("Запускаю production deploy...");
+            const response = await fetch("/.netlify/functions/manual-deploy", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            });
+
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+              throw new Error(payload.error || "Помилка запуску деплою.");
+            }
+
+            setStatus("Готово: деплой поставлено в чергу.");
+          } catch (error) {
+            setStatus(error instanceof Error ? error.message : "Не вдалося запустити деплой.");
+          }
+        });
+      })();
     </script>
   </body>
 </html>
