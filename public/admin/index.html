@@ -169,9 +169,7 @@
           if (
             normalized.includes("in review") ||
             normalized.includes("на розгляді") ||
-            normalized.includes("на перевір") ||
-            normalized.includes("готові до деплою") ||
-            normalized.includes("готові до публікації")
+            normalized.includes("на перевір")
           ) {
             return "in_review";
           }
@@ -375,10 +373,6 @@
                   return false;
                 }
 
-                if (candidate.children.length > 0) {
-                  return false;
-                }
-
                 if (candidate.closest("[data-rbd-draggable-id]")) {
                   return false;
                 }
@@ -387,26 +381,35 @@
                   return false;
                 }
 
+                if (candidate.tagName === "BUTTON") {
+                  return false;
+                }
+
                 const text = normalize(candidate.textContent || "");
                 if (!text || text.length > 44) {
                   return false;
                 }
 
-                return detectWorkflowStateByText(text) !== "unknown";
+                return (
+                  detectWorkflowStateByText(text) !== "unknown" ||
+                  text === "чорновик" ||
+                  text === "готові до деплою/публікації" ||
+                  text === "опубліковані"
+                );
               }) || null
             );
           };
 
           const workflowLabelByState = {
-            draft: "Чорновик",
-            in_review: "Готові до деплою/публікації",
+            draft: "Готові до деплою/публікації",
+            in_review: "Чорновик",
             ready: "Опубліковані",
             published: "Опубліковані",
           };
 
           const workflowOrderByState = {
-            draft: "1",
-            in_review: "2",
+            in_review: "1",
+            draft: "2",
             ready: "3",
             published: "3",
           };
@@ -419,22 +422,23 @@
             }
             relabeledRoots.add(columnRoot);
 
+            const stateFromDroppable = detectWorkflowStateByDroppableId(
+              droppable.getAttribute("data-rbd-droppable-id") || ""
+            );
             const headingNode = findHeadingForColumn(columnRoot);
             const stateFromHeading = headingNode
               ? detectWorkflowStateByText(headingNode.textContent || "")
               : "unknown";
-            const stateFromDroppable = detectWorkflowStateByDroppableId(
-              droppable.getAttribute("data-rbd-droppable-id") || ""
-            );
 
-            const state = stateFromHeading !== "unknown" ? stateFromHeading : stateFromDroppable;
-            if (state === "unknown") {
+            const state = stateFromDroppable !== "unknown" ? stateFromDroppable : stateFromHeading;
+            if (!state || state === "unknown") {
               return;
             }
 
             if (headingNode) {
               headingNode.textContent = workflowLabelByState[state] || headingNode.textContent;
             }
+
             const order = workflowOrderByState[state];
             if (order) {
               columnRoot.style.order = order;
