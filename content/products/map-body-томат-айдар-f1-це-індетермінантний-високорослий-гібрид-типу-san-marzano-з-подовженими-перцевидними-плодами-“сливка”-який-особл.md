@@ -3,7 +3,7 @@ title_ua: Томат Айдар F1
 slug: aidar_f1
 category: nasinnia
 price_uah: 49
-crm_id: 225
+crm_id: 135
 rating_fb: 4.9
 benefits:
   - Плоди типу San Marzano (перцевидна “сливка”) — ідеальні для соусів/пасти та
