@@ -3,7 +3,7 @@ title_ua: Томат Бананові ноги
 slug: banana_legs
 category: nasinnia
 price_uah: 49
-crm_id: 665
+crm_id: 302
 rating_fb: 4.9
 benefits:
   - "Незвичайний товарний вигляд: яскраво-жовті, подовжені “бананчики”
