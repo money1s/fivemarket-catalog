@@ -3,7 +3,7 @@ title_ua: Корнабель F1 Високоврожайний томат
 slug: " kornabel_f1"
 category: nasinnia
 price_uah: 49
-crm_id: 766
+crm_id: 235
 rating_fb: 4.8
 benefits:
   - "Товарний вигляд і форма: подовжені, перцевидні плоди до ~15 см, вирівняні
