@@ -3,7 +3,7 @@ title_ua: Томат Черрі Череза
 slug: cherry_chereza
 category: nasinnia
 price_uah: 49
-crm_id: 1101
+crm_id: 237
 rating_fb: 4.9
 benefits:
   - Ранній урожай через 95-100 днів
