@@ -3,7 +3,7 @@ title_ua: Томат Мадрид Ф1
 slug: tomat_madrid_f1
 category: nasinnia
 price_uah: 49
-crm_id: 664
+crm_id: 224
 rating_fb: 4.7
 benefits:
   - "Великоплідність: серцеподібні плоди зазвичай ~200–400 г, окремі можуть
