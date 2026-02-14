@@ -241,7 +241,13 @@
             }
           }
 
+          const stateKey = `${state}-${hasHiddenFlag ? "1" : "0"}`;
+          if (row.getAttribute("data-state-key") === stateKey) {
+            return;
+          }
+
           row.innerHTML = "";
+          row.setAttribute("data-state-key", stateKey);
 
           if (state === "published") {
             row.appendChild(buildStatusChip("Опублікована", "published"));
@@ -324,6 +330,29 @@
           relabelWorkflowColumns();
         }
 
+        let enhanceInProgress = false;
+        let enhanceQueued = false;
+
+        function scheduleEnhancements() {
+          if (enhanceInProgress) {
+            enhanceQueued = true;
+            return;
+          }
+
+          enhanceInProgress = true;
+          window.requestAnimationFrame(() => {
+            try {
+              runAdminEnhancements();
+            } finally {
+              enhanceInProgress = false;
+              if (enhanceQueued) {
+                enhanceQueued = false;
+                scheduleEnhancements();
+              }
+            }
+          });
+        }
+
         workflowBtn?.addEventListener("click", () => {
           window.location.hash = "#/workflow";
         });
@@ -403,7 +432,7 @@
         });
 
         const observer = new MutationObserver(() => {
-          runAdminEnhancements();
+          scheduleEnhancements();
         });
 
         observer.observe(document.body, {
@@ -411,8 +440,8 @@
           subtree: true,
         });
 
-        window.addEventListener("hashchange", runAdminEnhancements);
-        runAdminEnhancements();
+        window.addEventListener("hashchange", scheduleEnhancements);
+        scheduleEnhancements();
       })();
     </script>
   </body>
