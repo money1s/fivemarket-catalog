@@ -102,6 +102,23 @@ function appendIfPresent(params, key, value) {
   }
 }
 
+function resolveSafeRedirect(rawRedirect, fallbackUrl) {
+  const fallback = new URL(fallbackUrl);
+  if (!rawRedirect) {
+    return fallback;
+  }
+
+  try {
+    const candidate = new URL(rawRedirect, fallback);
+    if (candidate.origin !== fallback.origin) {
+      return fallback;
+    }
+    return candidate;
+  } catch {
+    return fallback;
+  }
+}
+
 exports.handler = async function handler(event) {
   if (event.httpMethod !== "POST") {
     return {
@@ -137,6 +154,25 @@ exports.handler = async function handler(event) {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ error: "CRM endpoint or API key is not configured" }),
+    };
+  }
+
+  let parsedCrmEndpoint;
+  try {
+    parsedCrmEndpoint = new URL(crmEndpoint);
+  } catch {
+    return {
+      statusCode: 500,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "CRM endpoint URL is invalid" }),
+    };
+  }
+
+  if (!/^https?:$/.test(parsedCrmEndpoint.protocol)) {
+    return {
+      statusCode: 500,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "CRM endpoint protocol must be http or https" }),
     };
   }
 
@@ -203,7 +239,7 @@ exports.handler = async function handler(event) {
 
   const fallbackThanks = `${proto}://${host}/thanks/`;
   const redirectRaw = form.success_url || form.redirect || form.success_redirect || fallbackThanks;
-  const redirectUrl = new URL(redirectRaw, fallbackThanks);
+  const redirectUrl = resolveSafeRedirect(redirectRaw, fallbackThanks);
   redirectUrl.searchParams.set("crm_status", crmOk ? "ok" : "error");
   if (crmOrderId) {
     redirectUrl.searchParams.set("crm_order_id", crmOrderId);

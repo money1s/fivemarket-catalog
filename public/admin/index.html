@@ -10,7 +10,7 @@
         right: 16px;
         bottom: 16px;
         z-index: 9999;
-        width: min(320px, calc(100vw - 32px));
+        width: min(340px, calc(100vw - 32px));
         border-radius: 14px;
         border: 1px solid #c7d9c8;
         background: #f8fbf8;
@@ -50,17 +50,56 @@
         background: #2f8b42;
         color: #ffffff;
       }
+      .fm-admin-tools__publish-now {
+        margin-top: 8px;
+        width: 100%;
+        background: #f0f2f5;
+        color: #2d3b44;
+      }
       .fm-admin-tools__status {
         min-height: 18px;
         margin-top: 8px;
         font-size: 11px;
         color: #3f6050;
       }
+      .fm-status-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+      }
+      .fm-status-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        border-radius: 999px;
+        padding: 2px 9px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+      .fm-status-chip--published {
+        background: #dff3e5;
+        color: #1f7c3b;
+      }
+      .fm-status-chip--ready {
+        background: #eadfff;
+        color: #6b3cb3;
+      }
+      .fm-status-chip--draft {
+        background: #e2e5ea;
+        color: #5a6370;
+      }
+      .fm-status-chip--hidden {
+        background: #f5e6d6;
+        color: #8b5a24;
+      }
       @media (max-width: 800px) {
         .fm-admin-tools {
           right: 10px;
           bottom: 10px;
-          width: min(300px, calc(100vw - 20px));
+          width: min(320px, calc(100vw - 20px));
         }
       }
     </style>
@@ -84,11 +123,12 @@
         panel.className = "fm-admin-tools";
         panel.innerHTML = `
           <h3>Економний режим деплою</h3>
-          <p>Працюйте через Workflow: <b>Ready</b> / <b>Published</b>. Коли все готово — запускайте один деплой.</p>
+          <p>Статуси: <b>Чорновик</b> / <b>Готові до публікації</b> / <b>Опублікована</b>.</p>
           <div class="fm-admin-tools__row">
             <button type="button" class="fm-admin-tools__workflow">Workflow</button>
             <button type="button" class="fm-admin-tools__deploy">1 деплой</button>
           </div>
+          <button type="button" class="fm-admin-tools__publish-now">Опублікувати зараз</button>
           <div class="fm-admin-tools__status" data-status></div>
         `;
         document.body.appendChild(panel);
@@ -96,6 +136,7 @@
         const status = panel.querySelector("[data-status]");
         const workflowBtn = panel.querySelector(".fm-admin-tools__workflow");
         const deployBtn = panel.querySelector(".fm-admin-tools__deploy");
+        const publishNowBtn = panel.querySelector(".fm-admin-tools__publish-now");
 
         const setStatus = (text) => {
           if (status) {
@@ -103,8 +144,216 @@
           }
         };
 
+        const normalize = (value) => String(value || "").replace(/\s+/g, " ").trim().toLowerCase();
+
+        function detectWorkflowStateByText(text) {
+          const normalized = normalize(text);
+          if (!normalized) {
+            return "published";
+          }
+
+          if (
+            normalized.includes("готово") ||
+            normalized.includes("ready")
+          ) {
+            return "ready";
+          }
+
+          if (
+            normalized.includes("в роботі") ||
+            normalized.includes("чорнов") ||
+            normalized.includes("draft") ||
+            normalized.includes("in review") ||
+            normalized.includes("на перевір")
+          ) {
+            return "draft";
+          }
+
+          return "published";
+        }
+
+        function buildStatusChip(label, tone) {
+          const chip = document.createElement("span");
+          chip.className = `fm-status-chip fm-status-chip--${tone}`;
+          chip.textContent = label;
+          return chip;
+        }
+
+        function addOrUpdateStatusBadges(entry) {
+          const entryText = String(entry.textContent || "");
+          const hasHiddenFlag = /visible=false/i.test(entryText);
+
+          entry.querySelectorAll("*:not(script):not(style)").forEach((node) => {
+            if (node.children.length > 0) {
+              return;
+            }
+
+            if (!node.textContent || !/visible=(true|false)/i.test(node.textContent)) {
+              return;
+            }
+
+            node.textContent = node.textContent
+              .replace(/\s*·\s*visible=(true|false)\s*/gi, "")
+              .replace(/\s{2,}/g, " ")
+              .trim();
+          });
+
+          const nativeStatus = Array.from(entry.querySelectorAll("span, div, p, small"))
+            .find((node) => {
+              if (!(node instanceof HTMLElement)) {
+                return false;
+              }
+
+              const text = normalize(node.textContent || "");
+              if (!text || text.length > 36) {
+                return false;
+              }
+
+              return (
+                text.includes("в роботі") ||
+                text.includes("чорнов") ||
+                text.includes("готово") ||
+                text.includes("draft") ||
+                text.includes("ready") ||
+                text.includes("in review") ||
+                text.includes("на перевір")
+              );
+            }) || null;
+
+          const state = detectWorkflowStateByText(nativeStatus ? nativeStatus.textContent : "");
+
+          if (nativeStatus && nativeStatus instanceof HTMLElement) {
+            nativeStatus.style.display = "none";
+          }
+
+          let row = entry.querySelector(".fm-status-row");
+          if (!row) {
+            row = document.createElement("div");
+            row.className = "fm-status-row";
+
+            const titleNode = Array.from(entry.querySelectorAll("h1, h2, h3, h4, h5, p, span"))
+              .find((node) => node.children.length === 0 && /грн/i.test(node.textContent || ""));
+
+            if (titleNode && titleNode.parentElement) {
+              titleNode.insertAdjacentElement("afterend", row);
+            } else {
+              entry.appendChild(row);
+            }
+          }
+
+          row.innerHTML = "";
+
+          if (state === "published") {
+            row.appendChild(buildStatusChip("Опублікована", "published"));
+          }
+
+          if (state === "ready") {
+            row.appendChild(buildStatusChip("Готові до публікації", "ready"));
+          }
+
+          if (state === "draft") {
+            row.appendChild(buildStatusChip("Чорновик", "draft"));
+          }
+
+          if (hasHiddenFlag) {
+            row.appendChild(buildStatusChip("Приховано", "hidden"));
+          }
+        }
+
+        function enhanceContentStatuses() {
+          const links = Array.from(document.querySelectorAll('a[href*="#/collections/products/entries/"]'));
+          links.forEach((entry) => addOrUpdateStatusBadges(entry));
+        }
+
+        function relabelWorkflowColumns() {
+          if (!window.location.hash.includes("#/workflow")) {
+            return;
+          }
+
+          const headingNodes = Array.from(
+            document.querySelectorAll("h1, h2, h3, h4, [role='heading'], div")
+          ).filter((node) => {
+            const text = normalize(node.textContent || "");
+            if (!text || text.length > 32) {
+              return false;
+            }
+            return (
+              text === "draft" ||
+              text.includes("в роботі") ||
+              text.includes("чорнов") ||
+              text.includes("in review") ||
+              text.includes("на перевір") ||
+              text === "ready" ||
+              text.includes("готово") ||
+              text.includes("published") ||
+              text.includes("опублік")
+            );
+          });
+
+          const hasPublishedColumn = headingNodes.some((node) => {
+            const text = normalize(node.textContent || "");
+            return text.includes("published") || text.includes("опублік");
+          });
+
+          headingNodes.forEach((node) => {
+            const text = normalize(node.textContent || "");
+
+            if (text === "draft" || text.includes("в роботі") || text.includes("чорнов")) {
+              node.textContent = "Чорновик";
+              return;
+            }
+
+            if (text.includes("in review") || text.includes("на перевір")) {
+              node.textContent = hasPublishedColumn ? "Готові до деплою/публікації" : "Опубліковані";
+              return;
+            }
+
+            if (text === "ready" || text.includes("готово")) {
+              node.textContent = "Готові до деплою/публікації";
+              return;
+            }
+
+            if (text.includes("published") || text.includes("опублік")) {
+              node.textContent = "Опубліковані";
+            }
+          });
+        }
+
+        function runAdminEnhancements() {
+          enhanceContentStatuses();
+          relabelWorkflowColumns();
+        }
+
         workflowBtn?.addEventListener("click", () => {
           window.location.hash = "#/workflow";
+        });
+
+        publishNowBtn?.addEventListener("click", () => {
+          const publishButton = Array.from(document.querySelectorAll("button"))
+            .find((button) => {
+              if (!(button instanceof HTMLButtonElement)) {
+                return false;
+              }
+
+              if (button.classList.contains("fm-admin-tools__publish-now")) {
+                return false;
+              }
+
+              if (button.disabled || button.offsetParent === null) {
+                return false;
+              }
+
+              const text = normalize(button.textContent || "");
+              return text.includes("опублікувати") || text === "publish" || text.includes("publish");
+            });
+
+          if (!publishButton) {
+            setStatus("Кнопка «Опублікувати» не знайдена. Відкрийте картку товару.");
+            return;
+          }
+
+          publishButton.click();
+          setStatus("Опублікування запущено.");
         });
 
         deployBtn?.addEventListener("click", async () => {
@@ -123,7 +372,7 @@
             token = typeof user.jwt === "function"
               ? await user.jwt(true)
               : (user.token && user.token.access_token) || "";
-          } catch (error) {
+          } catch (_error) {
             token = (user.token && user.token.access_token) || "";
           }
 
@@ -152,6 +401,18 @@
             setStatus(error instanceof Error ? error.message : "Не вдалося запустити деплой.");
           }
         });
+
+        const observer = new MutationObserver(() => {
+          runAdminEnhancements();
+        });
+
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true,
+        });
+
+        window.addEventListener("hashchange", runAdminEnhancements);
+        runAdminEnhancements();
       })();
     </script>
   </body>

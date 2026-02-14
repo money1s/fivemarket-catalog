@@ -34,7 +34,14 @@ collections:
     format: "frontmatter"
     slug: "{{slug}}"
     sortable_fields: ["title_ua", "price_uah", "category", "crm_id"]
-    summary: "{{title_ua}} — {{price_uah}} грн"
+    summary: "{{title_ua}} — {{price_uah}} грн · visible={{is_active}}"
+    view_filters:
+      - label: "На сайті"
+        field: "is_active"
+        pattern: "true"
+      - label: "Приховані"
+        field: "is_active"
+        pattern: "false"
     fields:
       - label: "Назва (UA)"
         name: "title_ua"
@@ -102,10 +109,11 @@ collections:
           label: "Фото"
           name: "image"
           widget: "image"
-      - label: "Активний"
+      - label: "Показувати на сайті"
         name: "is_active"
         widget: "boolean"
         default: true
+        hint: "Увімкнено — товар видно на сайті. Вимкнено — товар приховано без видалення."
       - label: "Опис"
         name: "body"
         widget: "markdown"

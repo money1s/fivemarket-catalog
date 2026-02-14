@@ -81,9 +81,12 @@ backend:
   branch: main
 ```
 
-CMS працює у режимі `publish_mode: editorial_workflow`, тому в адмінці доступні стани:
-- `Published` (опубліковані)
-- `Workflow -> Ready` (готові до деплою)
+CMS працює у режимі `publish_mode: editorial_workflow`.
+
+Додатково в `/admin` реалізовано UX-шар:
+- кольорові статуси в списку `Зміст`: `Опублікована`, `Готові до публікації`, `Чорновик`
+- окрема мітка `Приховано` для товарів із вимкненим `Показувати на сайті`
+- кнопка `Опублікувати зараз` у плаваючій панелі для швидкого кліку по native Publish
 
 ## Опційно: переключення Decap CMS на GitHub backend
 
@@ -164,6 +167,10 @@ NETLIFY_BUILD_HOOK_URL=https://api.netlify.com/build_hooks/your-hook-id
 2. Публікуйте готові картки.
 3. Натискайте кнопку `1 деплой` у `/admin` (панель праворуч унизу), щоб запустити один production deploy на всю пачку змін.
 
+Примітка:
+- у колекції `Товари` є швидкі фільтри `На сайті` / `Приховані`
+- перемикач `Показувати на сайті` працює як “Сховати без видалення”
+
 Як увімкнути кнопку `1 деплой`:
 1. Netlify -> Site configuration -> Build & deploy -> Build hooks -> `Add build hook`.
 2. Скопіюйте URL hook у змінну середовища `NETLIFY_BUILD_HOOK_URL`.
@@ -196,6 +203,6 @@ NETLIFY_BUILD_HOOK_URL=https://api.netlify.com/build_hooks/your-hook-id
 - `/Users/andrii/Desktop/fivemarket/lib/pixels.ts` - universal pixel helper
 - `/Users/andrii/Desktop/fivemarket/components/checkout/checkout-form.tsx` - HTML POST checkout
 - `/Users/andrii/Desktop/fivemarket/public/admin/config.yml` - Decap CMS workflow + структурування списку товарів
-- `/Users/andrii/Desktop/fivemarket/public/admin/index.html` - панель `Workflow / 1 деплой` в адмінці
+- `/Users/andrii/Desktop/fivemarket/public/admin/index.html` - панель `Workflow / Опублікувати зараз / 1 деплой` + кастомні статуси в адмінці
 - `/Users/andrii/Desktop/fivemarket/netlify/functions/manual-deploy.js` - secure trigger Netlify build hook (для авторизованого Identity користувача)
 - `/Users/andrii/Desktop/fivemarket/scripts/netlify-ignore-build.sh` - пропуск не-production збірок для економії кредитів
