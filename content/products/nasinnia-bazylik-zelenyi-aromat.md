@@ -3,7 +3,7 @@ title_ua: Томат Бобкат F1
 slug: bobkat_f1
 category: nasinnia
 price_uah: 56
-crm_id: 11111
+crm_id: 303
 rating_fb: 4.5
 benefits:
   - Середньоранній крупноплідний гібрид.
