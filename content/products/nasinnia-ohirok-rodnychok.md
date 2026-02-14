@@ -3,7 +3,7 @@ title_ua: Томат Полбіг F1
 slug: tomat_polbig_f1
 category: nasinnia
 price_uah: 59
-crm_id: 11111
+crm_id: 304
 rating_fb: 4.7
 benefits:
   - Ранній гібрид з високою врожайністю — до 10 кг з 1 м².
