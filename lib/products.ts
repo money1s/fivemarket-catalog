@@ -21,6 +21,27 @@ function parseStringArray(value: unknown): string[] {
     .filter(Boolean);
 }
 
+function parseImages(value: unknown): string[] {
+  const result: string[] = [];
+
+  const collect = (node: unknown) => {
+    if (typeof node === "string") {
+      const normalized = node.trim();
+      if (normalized) {
+        result.push(normalized);
+      }
+      return;
+    }
+
+    if (Array.isArray(node)) {
+      node.forEach(collect);
+    }
+  };
+
+  collect(value);
+  return result;
+}
+
 function parseNumber(value: unknown, fallback = 0): number {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
@@ -59,7 +80,7 @@ function parseProductFromFile(filePath: string): Product | null {
     return null;
   }
 
-  const images = parseStringArray(data.images).slice(0, MAX_IMAGES);
+  const images = parseImages(data.images).slice(0, MAX_IMAGES);
 
   return {
     title_ua: title,

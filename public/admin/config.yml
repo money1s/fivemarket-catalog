@@ -11,7 +11,7 @@ backend:
 locale: "uk"
 media_folder: "public/uploads"
 public_folder: "/uploads"
-publish_mode: editorial_workflow
+publish_mode: simple
 
 collections:
   - name: "products"
@@ -71,7 +71,7 @@ collections:
         min: 3
         max: 5
         default:
-          - "Додайте у коших всі необхідні товари"
+          - "Додайте у кошик всі необхідні товари"
           - "Оформіть замовлення. Ім`я та номер телефону"
           - "Очікуйте дзвінок від менеджера"
           - "Отримайте на пошті та вирощуйте"
@@ -89,9 +89,6 @@ collections:
           label: "Фото"
           name: "image"
           widget: "image"
-          media_library:
-            config:
-              multiple: true
       - label: "Активний"
         name: "is_active"
         widget: "boolean"
