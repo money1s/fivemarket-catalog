@@ -21,7 +21,7 @@ how_to_order:
   - Очікуйте дзвінок від менеджера
   - Отримайте на пошті та вирощуйте
 images:
-  - /uploads/kornabel1.webp
+  - - /uploads/kornabel1.jpg
   - /uploads/kornabel2.webp
   - /uploads/kornabel3.jpg
   - /uploads/kornabel4.jpg
