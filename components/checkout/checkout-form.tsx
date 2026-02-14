@@ -17,7 +17,6 @@ import { getStoredUtm, UtmData } from "@/lib/utm";
 
 const ORDER_SUBMIT_ACTION = process.env.NEXT_PUBLIC_ORDER_SUBMIT_ACTION || "/.netlify/functions/create-order";
 const CRM_ACTION = process.env.NEXT_PUBLIC_CRM_FORM_ACTION || "";
-const CRM_API_KEY = process.env.NEXT_PUBLIC_CRM_API_KEY || "";
 const CRM_OFFICE = process.env.NEXT_PUBLIC_CRM_OFFICE || "9";
 const CRM_COUNTRY = process.env.NEXT_PUBLIC_CRM_COUNTRY || "UA";
 const CRM_DELIVERY_ID = process.env.NEXT_PUBLIC_CRM_DELIVERY_ID || "1";
@@ -199,7 +198,6 @@ export function CheckoutForm() {
             />
           </div>
 
-          <input type="hidden" name="key" value={CRM_API_KEY} />
           <input type="hidden" name="order_id" value={orderId} />
           <input type="hidden" name="products" value={lpCrmProducts} />
           <input type="hidden" name="cart_items" value={cartItemsPayload} />

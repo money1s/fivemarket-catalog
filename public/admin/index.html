@@ -149,27 +149,42 @@
         function detectWorkflowStateByText(text) {
           const normalized = normalize(text);
           if (!normalized) {
+            return "unknown";
+          }
+
+          if (
+            normalized.includes("опублік") ||
+            normalized.includes("published")
+          ) {
             return "published";
           }
 
           if (
             normalized.includes("готово") ||
-            normalized.includes("ready")
+            normalized === "ready"
           ) {
             return "ready";
           }
 
           if (
+            normalized.includes("in review") ||
+            normalized.includes("на розгляді") ||
+            normalized.includes("на перевір") ||
+            normalized.includes("готові до деплою") ||
+            normalized.includes("готові до публікації")
+          ) {
+            return "in_review";
+          }
+
+          if (
             normalized.includes("в роботі") ||
             normalized.includes("чорнов") ||
-            normalized.includes("draft") ||
-            normalized.includes("in review") ||
-            normalized.includes("на перевір")
+            normalized === "draft"
           ) {
             return "draft";
           }
 
-          return "published";
+          return "unknown";
         }
 
         function buildStatusChip(label, tone) {
@@ -216,7 +231,10 @@
                 text.includes("draft") ||
                 text.includes("ready") ||
                 text.includes("in review") ||
-                text.includes("на перевір")
+                text.includes("на розгляді") ||
+                text.includes("на перевір") ||
+                text.includes("опублік") ||
+                text.includes("published")
               );
             }) || null;
 
@@ -249,11 +267,11 @@
           row.innerHTML = "";
           row.setAttribute("data-state-key", stateKey);
 
-          if (state === "published") {
+          if (state === "published" || state === "unknown") {
             row.appendChild(buildStatusChip("Опублікована", "published"));
           }
 
-          if (state === "ready") {
+          if (state === "ready" || state === "in_review") {
             row.appendChild(buildStatusChip("Готові до публікації", "ready"));
           }
 
@@ -267,6 +285,10 @@
         }
 
         function enhanceContentStatuses() {
+          if (!window.location.hash.includes("#/collections/products")) {
+            return;
+          }
+
           const links = Array.from(document.querySelectorAll('a[href*="#/collections/products/entries/"]'));
           links.forEach((entry) => addOrUpdateStatusBadges(entry));
         }
@@ -276,51 +298,146 @@
             return;
           }
 
-          const headingNodes = Array.from(
-            document.querySelectorAll("h1, h2, h3, h4, [role='heading'], div")
-          ).filter((node) => {
-            const text = normalize(node.textContent || "");
-            if (!text || text.length > 32) {
-              return false;
+          const droppables = Array.from(document.querySelectorAll("[data-rbd-droppable-id]"));
+          if (!droppables.length) {
+            return;
+          }
+
+          const detectWorkflowStateByDroppableId = (value) => {
+            const normalizedValue = normalize(value);
+            if (!normalizedValue) {
+              return "unknown";
             }
-            return (
-              text === "draft" ||
-              text.includes("в роботі") ||
-              text.includes("чорнов") ||
-              text.includes("in review") ||
-              text.includes("на перевір") ||
-              text === "ready" ||
-              text.includes("готово") ||
-              text.includes("published") ||
-              text.includes("опублік")
+
+            if (
+              normalizedValue.includes("in_review") ||
+              normalizedValue.includes("inreview") ||
+              normalizedValue.includes("review")
+            ) {
+              return "in_review";
+            }
+
+            if (normalizedValue.includes("draft")) {
+              return "draft";
+            }
+
+            if (normalizedValue.includes("ready")) {
+              return "ready";
+            }
+
+            if (normalizedValue.includes("published")) {
+              return "published";
+            }
+
+            return "unknown";
+          };
+
+          const findColumnRootFromDroppable = (droppable) => {
+            let node = droppable.parentElement;
+            while (node && node !== document.body) {
+              if (typeof node.querySelectorAll !== "function") {
+                node = node.parentElement;
+                continue;
+              }
+
+              const ownDroppables = node.querySelectorAll("[data-rbd-droppable-id]");
+              if (ownDroppables.length === 1) {
+                const parent = node.parentElement;
+                if (!parent) {
+                  return node;
+                }
+
+                const siblingColumns = Array.from(parent.children).filter(
+                  (child) =>
+                    child instanceof HTMLElement &&
+                    child.querySelector("[data-rbd-droppable-id]")
+                );
+
+                if (siblingColumns.length >= 2) {
+                  return node;
+                }
+              }
+
+              node = node.parentElement;
+            }
+
+            return droppable.parentElement || droppable;
+          };
+
+          const findHeadingForColumn = (columnRoot) => {
+            const candidates = Array.from(
+              columnRoot.querySelectorAll("h1, h2, h3, h4, [role='heading'], div, span, p, strong")
             );
-          });
 
-          const hasPublishedColumn = headingNodes.some((node) => {
-            const text = normalize(node.textContent || "");
-            return text.includes("published") || text.includes("опублік");
-          });
+            return (
+              candidates.find((candidate) => {
+                if (!(candidate instanceof HTMLElement)) {
+                  return false;
+                }
 
-          headingNodes.forEach((node) => {
-            const text = normalize(node.textContent || "");
+                if (candidate.children.length > 0) {
+                  return false;
+                }
 
-            if (text === "draft" || text.includes("в роботі") || text.includes("чорнов")) {
-              node.textContent = "Чорновик";
+                if (candidate.closest("[data-rbd-draggable-id]")) {
+                  return false;
+                }
+
+                if (candidate.closest('a[href*="#/collections/"][href*="/entries/"]')) {
+                  return false;
+                }
+
+                const text = normalize(candidate.textContent || "");
+                if (!text || text.length > 44) {
+                  return false;
+                }
+
+                return detectWorkflowStateByText(text) !== "unknown";
+              }) || null
+            );
+          };
+
+          const workflowLabelByState = {
+            draft: "Чорновик",
+            in_review: "Готові до деплою/публікації",
+            ready: "Опубліковані",
+            published: "Опубліковані",
+          };
+
+          const workflowOrderByState = {
+            draft: "1",
+            in_review: "2",
+            ready: "3",
+            published: "3",
+          };
+
+          const relabeledRoots = new Set();
+          droppables.forEach((droppable) => {
+            const columnRoot = findColumnRootFromDroppable(droppable);
+            if (!columnRoot || relabeledRoots.has(columnRoot)) {
+              return;
+            }
+            relabeledRoots.add(columnRoot);
+
+            const headingNode = findHeadingForColumn(columnRoot);
+            const stateFromHeading = headingNode
+              ? detectWorkflowStateByText(headingNode.textContent || "")
+              : "unknown";
+            const stateFromDroppable = detectWorkflowStateByDroppableId(
+              droppable.getAttribute("data-rbd-droppable-id") || ""
+            );
+
+            const state = stateFromHeading !== "unknown" ? stateFromHeading : stateFromDroppable;
+            if (state === "unknown") {
               return;
             }
 
-            if (text.includes("in review") || text.includes("на перевір")) {
-              node.textContent = hasPublishedColumn ? "Готові до деплою/публікації" : "Опубліковані";
-              return;
+            if (headingNode) {
+              headingNode.textContent = workflowLabelByState[state] || headingNode.textContent;
             }
-
-            if (text === "ready" || text.includes("готово")) {
-              node.textContent = "Готові до деплою/публікації";
-              return;
-            }
-
-            if (text.includes("published") || text.includes("опублік")) {
-              node.textContent = "Опубліковані";
+            const order = workflowOrderByState[state];
+            if (order) {
+              columnRoot.style.order = order;
             }
           });
         }

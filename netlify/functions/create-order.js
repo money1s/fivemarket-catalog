@@ -136,12 +136,10 @@ exports.handler = async function handler(event) {
   const crmEndpoint =
     process.env.CRM_ORDER_ENDPOINT ||
     process.env.NEXT_PUBLIC_CRM_FORM_ACTION ||
-    form.crm_action ||
     "";
   const crmApiKey =
     process.env.CRM_API_KEY ||
     process.env.NEXT_PUBLIC_CRM_API_KEY ||
-    form.key ||
     "";
   const crmOffice = process.env.CRM_OFFICE || process.env.NEXT_PUBLIC_CRM_OFFICE || form.office || "9";
   const crmCountry = process.env.CRM_COUNTRY || process.env.NEXT_PUBLIC_CRM_COUNTRY || form.country || "UA";

@@ -122,14 +122,13 @@ NEXT_PUBLIC_ORDER_SUBMIT_ACTION=/.netlify/functions/create-order
 
 # публічні (fallback)
 NEXT_PUBLIC_CRM_FORM_ACTION=http://your-subdomain.lp-crm.biz/api/addNewOrder.html
-NEXT_PUBLIC_CRM_API_KEY=your_api_key
 NEXT_PUBLIC_CRM_OFFICE=9
 NEXT_PUBLIC_CRM_COUNTRY=UA
 NEXT_PUBLIC_CRM_DELIVERY_ID=1
 NEXT_PUBLIC_CRM_PAYMENT_ID=4
 NEXT_PUBLIC_CRM_DEFAULT_EMAIL=
 
-# серверні (рекомендовано)
+# серверні (рекомендовано, ключ тільки тут)
 CRM_ORDER_ENDPOINT=http://your-subdomain.lp-crm.biz/api/addNewOrder.html
 CRM_API_KEY=your_api_key
 CRM_OFFICE=9
