@@ -106,6 +106,18 @@
   </head>
   <body>
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+    <script>
+      (function setupConfirmBridge() {
+        const nativeConfirm = window.confirm ? window.confirm.bind(window) : null;
+        window.__fmAutoConfirmEnabled = false;
+        window.confirm = function patchedConfirm(message) {
+          if (window.__fmAutoConfirmEnabled) {
+            return true;
+          }
+          return nativeConfirm ? nativeConfirm(message) : true;
+        };
+      })();
+    </script>
     <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
     <script>
       if (window.netlifyIdentity) {
@@ -162,7 +174,7 @@
           button.classList.contains("fm-admin-tools__deploy") ||
           button.classList.contains("fm-admin-tools__publish-now");
 
-        const isPublishButton = (button) => {
+        const isPublishActionButton = (button) => {
           if (!(button instanceof HTMLButtonElement)) {
             return false;
           }
@@ -180,22 +192,186 @@
             text === "опублікувати запис" ||
             text === "publish entry" ||
             text === "publish" ||
-            (text.includes("опублікувати") && !text.includes("зараз"))
+            text === "опублікувати"
           );
         };
 
-        const getPublishButtons = () =>
-          Array.from(document.querySelectorAll("button")).filter((button) =>
-            isPublishButton(button)
+        const detectWorkflowStateByDroppableId = (value) => {
+          const normalizedValue = normalize(value);
+          if (!normalizedValue) {
+            return "unknown";
+          }
+
+          if (
+            normalizedValue.includes("in_review") ||
+            normalizedValue.includes("inreview") ||
+            normalizedValue.includes("review")
+          ) {
+            return "in_review";
+          }
+
+          if (normalizedValue.includes("draft")) {
+            return "draft";
+          }
+
+          if (normalizedValue.includes("ready")) {
+            return "ready";
+          }
+
+          if (normalizedValue.includes("published")) {
+            return "published";
+          }
+
+          return "unknown";
+        };
+
+        const findColumnRootFromDroppable = (droppable) => {
+          let node = droppable.parentElement;
+          while (node && node !== document.body) {
+            if (typeof node.querySelectorAll !== "function") {
+              node = node.parentElement;
+              continue;
+            }
+
+            const ownDroppables = node.querySelectorAll("[data-rbd-droppable-id]");
+            if (ownDroppables.length === 1) {
+              const parent = node.parentElement;
+              if (!parent) {
+                return node;
+              }
+
+              const siblingColumns = Array.from(parent.children).filter(
+                (child) =>
+                  child instanceof HTMLElement &&
+                  child.querySelector("[data-rbd-droppable-id]")
+              );
+
+              if (siblingColumns.length >= 2) {
+                return node;
+              }
+            }
+
+            node = node.parentElement;
+          }
+
+          return droppable.parentElement || droppable;
+        };
+
+        async function waitFor(check, timeoutMs = 8000, stepMs = 120) {
+          const start = Date.now();
+          while (Date.now() - start < timeoutMs) {
+            if (check()) {
+              return true;
+            }
+            await wait(stepMs);
+          }
+          return false;
+        }
+
+        function collectReadyEntryHashes() {
+          const droppables = Array.from(document.querySelectorAll("[data-rbd-droppable-id]"));
+          const readyRoots = [];
+
+          droppables.forEach((droppable) => {
+            const state = detectWorkflowStateByDroppableId(
+              droppable.getAttribute("data-rbd-droppable-id") || ""
+            );
+
+            if (state === "ready") {
+              readyRoots.push(findColumnRootFromDroppable(droppable));
+            }
+          });
+
+          const roots = readyRoots.length
+            ? readyRoots
+            : droppables
+                .map((droppable) => findColumnRootFromDroppable(droppable))
+                .filter((root) => {
+                  const text = normalize(root.textContent || "");
+                  return text.includes("готово") || text.includes("ready");
+                });
+
+          const hashes = [];
+          const seen = new Set();
+
+          roots.forEach((root) => {
+            const links = Array.from(
+              root.querySelectorAll('a[href*="#/collections/"][href*="/entries/"]')
+            );
+
+            links.forEach((link) => {
+              const rawHref = link.getAttribute("href") || "";
+              if (!rawHref) {
+                return;
+              }
+
+              let hash = "";
+              if (rawHref.startsWith("#")) {
+                hash = rawHref;
+              } else {
+                try {
+                  hash = new URL(rawHref, window.location.href).hash;
+                } catch (_error) {
+                  hash = "";
+                }
+              }
+
+              if (!hash || seen.has(hash)) {
+                return;
+              }
+
+              seen.add(hash);
+              hashes.push(hash);
+            });
+          });
+
+          return hashes;
+        }
+
+        async function openEntryAndPublish(entryHash, index, total) {
+          window.location.hash = entryHash;
+          const canPublish = await waitFor(
+            () =>
+              Array.from(document.querySelectorAll("button")).some((button) =>
+                isPublishActionButton(button)
+              ),
+            10000,
+            140
           );
 
+          if (!canPublish) {
+            setStatus(`Не вдалося відкрити запис ${index + 1}/${total}.`);
+            return false;
+          }
+
+          const publishButton = Array.from(document.querySelectorAll("button")).find((button) =>
+            isPublishActionButton(button)
+          );
+
+          if (!(publishButton instanceof HTMLButtonElement)) {
+            return false;
+          }
+
+          publishButton.click();
+          await waitFor(
+            () =>
+              !Array.from(document.querySelectorAll("button")).some((button) =>
+                isPublishActionButton(button)
+              ),
+            10000,
+            150
+          );
+          await wait(250);
+          return true;
+        }
+
         async function withAutoConfirm(task) {
-          const originalConfirm = window.confirm;
-          window.confirm = () => true;
+          const previous = window.__fmAutoConfirmEnabled === true;
+          window.__fmAutoConfirmEnabled = true;
           try {
             return await task();
           } finally {
-            window.confirm = originalConfirm;
+            window.__fmAutoConfirmEnabled = previous;
           }
         }
 
@@ -205,29 +381,30 @@
             await wait(500);
           }
 
-          let totalPublished = 0;
-          const maxCycles = 8;
-
-          for (let cycle = 1; cycle <= maxCycles; cycle += 1) {
-            const buttons = getPublishButtons();
-            if (!buttons.length) {
-              break;
-            }
-
-            for (const button of buttons) {
-              if (!(button instanceof HTMLButtonElement) || button.disabled || button.offsetParent === null) {
-                continue;
-              }
-
-              button.click();
-              totalPublished += 1;
-              setStatus(`Публікація записів: ${totalPublished}...`);
-              await wait(900);
-            }
-
-            await wait(1200);
+          await wait(400);
+          const readyEntries = collectReadyEntryHashes();
+          if (!readyEntries.length) {
+            return 0;
           }
 
+          let totalPublished = 0;
+
+          for (let index = 0; index < readyEntries.length; index += 1) {
+            const entryHash = readyEntries[index];
+            setStatus(`Публікація ${index + 1}/${readyEntries.length}...`);
+            const published = await openEntryAndPublish(entryHash, index, readyEntries.length);
+            if (published) {
+              totalPublished += 1;
+            }
+
+            if (index < readyEntries.length - 1) {
+              window.location.hash = "#/workflow";
+              await wait(700);
+            }
+          }
+
+          window.location.hash = "#/workflow";
+          await wait(500);
           return totalPublished;
         }
 
