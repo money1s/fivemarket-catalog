@@ -6,7 +6,7 @@
   }
   window.__fmToolsInited = true;
 
-  const TOOLS_VERSION = "2026-02-15-2";
+  const TOOLS_VERSION = "2026-02-15-3";
   const STORAGE_KEY_HOOK = "fm_netlify_build_hook";
 
   const ROUTE_WORKFLOW = "#/workflow";
@@ -38,6 +38,32 @@
   ];
 
   const READY_HEADER_PATTERNS = ["ready", "готові", "готово"];
+  const MONTH_PATTERNS = [
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+    "січ",
+    "лют",
+    "бер",
+    "кві",
+    "тра",
+    "чер",
+    "лип",
+    "сер",
+    "вер",
+    "жов",
+    "лис",
+    "груд",
+  ];
   const DROPPABLE_ATTRS = ["data-rbd-droppable-id", "data-rfd-droppable-id", "data-droppable-id"];
   const DRAGGABLE_ATTRS = ["data-rbd-draggable-id", "data-rfd-draggable-id", "data-draggable-id"];
   const DROPPABLE_QUERY = DROPPABLE_ATTRS.map((attr) => `[${attr}]`).join(", ");
@@ -406,6 +432,118 @@
     return droppable.parentElement || droppable;
   }
 
+  function scoreReadyHeadingNode(node) {
+    if (!(node instanceof HTMLElement) || !isVisibleElement(node)) {
+      return 0;
+    }
+
+    if (inToolsPanel(node) || node.closest("#fm-workflow-tools")) {
+      return 0;
+    }
+
+    const text = normalize(node.textContent || "");
+    if (!text || text.length > 64) {
+      return 0;
+    }
+
+    if (!READY_HEADER_PATTERNS.some((pattern) => text.includes(pattern))) {
+      return 0;
+    }
+
+    let score = 5;
+    if (text === "готово" || text === "ready") {
+      score += 4;
+    }
+    if (/\\b\\d+\\s+запис/i.test(text)) {
+      score += 2;
+    }
+
+    return score;
+  }
+
+  function createTextHash(value) {
+    let hash = 0;
+    const text = String(value || "");
+    for (let index = 0; index < text.length; index += 1) {
+      hash = (hash * 31 + text.charCodeAt(index)) >>> 0;
+    }
+    return hash.toString(16);
+  }
+
+  function isLikelyEntryCard(node) {
+    if (!(node instanceof HTMLElement) || !isVisibleElement(node) || inToolsPanel(node)) {
+      return false;
+    }
+
+    const text = normalize(node.textContent || "");
+    if (!text || text.length < 18 || text.length > 2400) {
+      return false;
+    }
+
+    const hasProductsWord = text.includes("товари") || text.includes("products");
+    const hasDate = MONTH_PATTERNS.some((month) => text.includes(month));
+    const hasPrice = text.includes("грн");
+    const hasDescription = text.split(" ").length > 10;
+
+    return hasProductsWord && (hasDate || hasPrice) && hasDescription;
+  }
+
+  function uniqueTopLevel(nodes) {
+    return nodes.filter(
+      (node) =>
+        !nodes.some((other) => other !== node && other.contains(node))
+    );
+  }
+
+  function collectEntryNodesFromContainer(container) {
+    let nodes = Array.from(container.querySelectorAll(DRAGGABLE_QUERY)).filter((node) =>
+      node instanceof HTMLElement && isVisibleElement(node)
+    );
+    if (nodes.length) {
+      return uniqueTopLevel(nodes);
+    }
+
+    const entryLinks = Array.from(
+      container.querySelectorAll('a[href*="#/collections/"][href*="/entries/"]')
+    ).filter((node) => node instanceof HTMLElement && isVisibleElement(node));
+    if (entryLinks.length) {
+      return uniqueTopLevel(entryLinks);
+    }
+
+    const semanticCards = Array.from(container.querySelectorAll("article, li, div")).filter((node) =>
+      isLikelyEntryCard(node)
+    );
+    if (semanticCards.length) {
+      return uniqueTopLevel(semanticCards);
+    }
+
+    return [];
+  }
+
+  function findReadyColumnByStructureFallback() {
+    const headingCandidates = Array.from(
+      document.querySelectorAll("h1,h2,h3,h4,[role='heading'],strong,span,p,div")
+    );
+
+    const headings = headingCandidates
+      .map((node) => ({ node, score: scoreReadyHeadingNode(node) }))
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score);
+
+    for (const item of headings) {
+      let cursor = item.node;
+      for (let depth = 0; depth < 8 && cursor && cursor !== document.body; depth += 1) {
+        const cardNodes = collectEntryNodesFromContainer(cursor);
+        if (cardNodes.length) {
+          return { element: cursor, source: "structure" };
+        }
+        cursor = cursor.parentElement;
+      }
+    }
+
+    return null;
+  }
+
   function collectBoardDroppables() {
     return Array.from(document.querySelectorAll(DROPPABLE_QUERY)).filter(
       (node) => node instanceof HTMLElement && isVisibleElement(node)
@@ -489,6 +627,11 @@
       return { element: headerFallback, source: "header" };
     }
 
+    const structuralFallback = findReadyColumnByStructureFallback();
+    if (structuralFallback) {
+      return structuralFallback;
+    }
+
     return null;
   }
 
@@ -525,11 +668,10 @@
       };
     }
 
-    let cardNodes = Array.from(found.element.querySelectorAll(DRAGGABLE_QUERY));
-    if (!cardNodes.length) {
-      const columnRoot =
-        found.element instanceof HTMLElement ? findColumnRootFromDroppable(found.element) : found.element;
-      cardNodes = Array.from(columnRoot.querySelectorAll(DRAGGABLE_QUERY));
+    let cardNodes = collectEntryNodesFromContainer(found.element);
+    if (!cardNodes.length && found.element instanceof HTMLElement) {
+      const columnRoot = findColumnRootFromDroppable(found.element);
+      cardNodes = collectEntryNodesFromContainer(columnRoot);
     }
 
     const seen = new Set();
@@ -537,7 +679,8 @@
 
     cardNodes.forEach((cardNode) => {
       const rawId = getDraggableId(cardNode);
-      const fallbackId = `fallback:${normalize(textFromCard(cardNode)).replace(/[^a-z0-9а-яіїєґ _-]/gi, "").slice(0, 80)}`;
+      const rawText = String(cardNode.textContent || "");
+      const fallbackId = `fallback:${createTextHash(rawText.slice(0, 600))}`;
       const draggableId = rawId || fallbackId;
       if (seen.has(draggableId)) {
         return;
@@ -548,7 +691,7 @@
         id: draggableId,
         slug: slugFromDraggableId(draggableId),
         title: textFromCard(cardNode),
-        element: cardNode,
+        element: cardNode instanceof HTMLElement ? cardNode : null,
       });
     });
 
@@ -684,7 +827,8 @@
     }
 
     const target =
-      entry.element.querySelector("button, a, [role='button']") || entry.element;
+      entry.element.querySelector("a[href*='/entries/'], a[href*='#/collections/'][href*='/entries/'], button, [role='button']") ||
+      entry.element;
 
     entry.element.scrollIntoView({ block: "center" });
     clickElement(target);
