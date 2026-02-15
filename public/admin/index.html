@@ -268,28 +268,9 @@
           return false;
         }
 
-        function collectReadyEntryHashes() {
+        function collectWorkflowEntryHashes() {
           const droppables = Array.from(document.querySelectorAll("[data-rbd-droppable-id]"));
-          const readyRoots = [];
-
-          droppables.forEach((droppable) => {
-            const state = detectWorkflowStateByDroppableId(
-              droppable.getAttribute("data-rbd-droppable-id") || ""
-            );
-
-            if (state === "ready") {
-              readyRoots.push(findColumnRootFromDroppable(droppable));
-            }
-          });
-
-          const roots = readyRoots.length
-            ? readyRoots
-            : droppables
-                .map((droppable) => findColumnRootFromDroppable(droppable))
-                .filter((root) => {
-                  const text = normalize(root.textContent || "");
-                  return text.includes("готово") || text.includes("ready");
-                });
+          const roots = droppables.map((droppable) => findColumnRootFromDroppable(droppable));
 
           const hashes = [];
           const seen = new Set();
@@ -328,19 +309,32 @@
           return hashes;
         }
 
+        const isSaveActionButton = (button) => {
+          if (!(button instanceof HTMLButtonElement)) {
+            return false;
+          }
+
+          if (isAdminPanelButton(button) || button.disabled || button.offsetParent === null) {
+            return false;
+          }
+
+          const text = normalize(button.textContent || "");
+          return text === "зберегти" || text === "save";
+        };
+
         async function openEntryAndPublish(entryHash, index, total) {
           window.location.hash = entryHash;
-          const canPublish = await waitFor(
+          const editorLoaded = await waitFor(
             () =>
-              Array.from(document.querySelectorAll("button")).some((button) =>
-                isPublishActionButton(button)
+              Array.from(document.querySelectorAll("button")).some(
+                (button) => isPublishActionButton(button) || isSaveActionButton(button)
               ),
             10000,
             140
           );
 
-          if (!canPublish) {
-            setStatus(`Не вдалося відкрити запис ${index + 1}/${total}.`);
+          if (!editorLoaded) {
+            setStatus(`Не вдалося відкрити запис ${index + 1}/${total}. Пропускаю.`);
             return false;
           }
 
@@ -349,6 +343,7 @@
           );
 
           if (!(publishButton instanceof HTMLButtonElement)) {
+            await wait(120);
             return false;
           }
 
@@ -382,22 +377,22 @@
           }
 
           await wait(400);
-          const readyEntries = collectReadyEntryHashes();
-          if (!readyEntries.length) {
+          const workflowEntries = collectWorkflowEntryHashes();
+          if (!workflowEntries.length) {
             return 0;
           }
 
           let totalPublished = 0;
 
-          for (let index = 0; index < readyEntries.length; index += 1) {
-            const entryHash = readyEntries[index];
-            setStatus(`Публікація ${index + 1}/${readyEntries.length}...`);
-            const published = await openEntryAndPublish(entryHash, index, readyEntries.length);
+          for (let index = 0; index < workflowEntries.length; index += 1) {
+            const entryHash = workflowEntries[index];
+            setStatus(`Перевірка запису ${index + 1}/${workflowEntries.length}...`);
+            const published = await openEntryAndPublish(entryHash, index, workflowEntries.length);
             if (published) {
               totalPublished += 1;
             }
 
-            if (index < readyEntries.length - 1) {
+            if (index < workflowEntries.length - 1) {
               window.location.hash = "#/workflow";
               await wait(700);
             }
@@ -746,7 +741,7 @@
             setStatus("Шукаю записи для публікації...");
             const published = await withAutoConfirm(() => publishAllReadyEntries());
             if (!published) {
-              setStatus("У колонці «Готово» немає записів для публікації.");
+              setStatus("Немає записів, доступних для публікації.");
               return;
             }
             setStatus(`Готово: опубліковано ${published} запис(ів) у CMS.`);
