@@ -6,7 +6,7 @@
   }
   window.__fmToolsInited = true;
 
-  const TOOLS_VERSION = "2026-02-15-1";
+  const TOOLS_VERSION = "2026-02-15-2";
   const STORAGE_KEY_HOOK = "fm_netlify_build_hook";
 
   const ROUTE_WORKFLOW = "#/workflow";
@@ -38,6 +38,10 @@
   ];
 
   const READY_HEADER_PATTERNS = ["ready", "готові", "готово"];
+  const DROPPABLE_ATTRS = ["data-rbd-droppable-id", "data-rfd-droppable-id", "data-droppable-id"];
+  const DRAGGABLE_ATTRS = ["data-rbd-draggable-id", "data-rfd-draggable-id", "data-draggable-id"];
+  const DROPPABLE_QUERY = DROPPABLE_ATTRS.map((attr) => `[${attr}]`).join(", ");
+  const DRAGGABLE_QUERY = DRAGGABLE_ATTRS.map((attr) => `[${attr}]`).join(", ");
 
   const state = {
     running: false,
@@ -341,7 +345,33 @@
     }
 
     await waitFor(() => window.location.hash.startsWith(ROUTE_WORKFLOW), 2500, 80);
-    await waitFor(() => document.querySelector("[data-rbd-droppable-id]"), 8000, 160);
+    await waitFor(() => document.querySelector(DROPPABLE_QUERY), 8000, 160);
+  }
+
+  function getDroppableId(element) {
+    for (const attr of DROPPABLE_ATTRS) {
+      const value = element.getAttribute(attr);
+      if (value) {
+        return String(value).trim();
+      }
+    }
+    return "";
+  }
+
+  function getDraggableId(element) {
+    for (const attr of DRAGGABLE_ATTRS) {
+      const value = element.getAttribute(attr);
+      if (value) {
+        return String(value).trim();
+      }
+    }
+    return "";
+  }
+
+  function countDraggableCards(container) {
+    return Array.from(container.querySelectorAll(DRAGGABLE_QUERY)).filter((node) =>
+      isVisibleElement(node)
+    ).length;
   }
 
   function findColumnRootFromDroppable(droppable) {
@@ -352,7 +382,7 @@
         continue;
       }
 
-      const ownDroppables = node.querySelectorAll("[data-rbd-droppable-id]");
+      const ownDroppables = node.querySelectorAll(DROPPABLE_QUERY);
       if (ownDroppables.length === 1) {
         const parent = node.parentElement;
         if (!parent) {
@@ -362,7 +392,7 @@
         const siblingColumns = Array.from(parent.children).filter(
           (child) =>
             child instanceof HTMLElement &&
-            child.querySelector("[data-rbd-droppable-id]")
+            child.querySelector(DROPPABLE_QUERY)
         );
 
         if (siblingColumns.length >= 2) {
@@ -377,7 +407,9 @@
   }
 
   function collectBoardDroppables() {
-    return Array.from(document.querySelectorAll("[data-rbd-droppable-id]"));
+    return Array.from(document.querySelectorAll(DROPPABLE_QUERY)).filter(
+      (node) => node instanceof HTMLElement && isVisibleElement(node)
+    );
   }
 
   function findReadyColumnByHeaderFallback() {
@@ -404,7 +436,7 @@
           return false;
         }
 
-        if (candidate.closest("[data-rbd-draggable-id]")) {
+        if (candidate.closest(DRAGGABLE_QUERY)) {
           return false;
         }
 
@@ -421,27 +453,35 @@
       return null;
     }
 
-    const nestedDroppables = Array.from(match.querySelectorAll("[data-rbd-droppable-id]"));
+    const nestedDroppables = Array.from(match.querySelectorAll(DROPPABLE_QUERY));
     if (nestedDroppables.length) {
-      return nestedDroppables[0];
+      const sorted = nestedDroppables
+        .map((node) => ({ node, cards: countDraggableCards(node) }))
+        .sort((a, b) => b.cards - a.cards);
+      return sorted[0].node;
     }
 
     return match;
   }
 
   function findReadyColumn() {
-    const exact = document.querySelector('[data-rbd-droppable-id="ready"]');
-    if (exact) {
-      return { element: exact, source: "exact" };
+    const droppables = collectBoardDroppables();
+    const exactMatches = droppables.filter((element) => normalize(getDroppableId(element)) === "ready");
+    if (exactMatches.length) {
+      const best = exactMatches
+        .map((node) => ({ node, cards: countDraggableCards(node) }))
+        .sort((a, b) => b.cards - a.cards)[0];
+      return { element: best.node, source: "exact" };
     }
 
-    const partial = collectBoardDroppables().find((element) => {
-      const value = normalize(element.getAttribute("data-rbd-droppable-id") || "");
-      return value.includes("ready");
-    });
-
-    if (partial) {
-      return { element: partial, source: "partial" };
+    const partialMatches = droppables.filter((element) =>
+      normalize(getDroppableId(element)).includes("ready")
+    );
+    if (partialMatches.length) {
+      const best = partialMatches
+        .map((node) => ({ node, cards: countDraggableCards(node) }))
+        .sort((a, b) => b.cards - a.cards)[0];
+      return { element: best.node, source: "partial" };
     }
 
     const headerFallback = findReadyColumnByHeaderFallback();
@@ -485,13 +525,21 @@
       };
     }
 
-    const cardNodes = Array.from(found.element.querySelectorAll("[data-rbd-draggable-id]"));
+    let cardNodes = Array.from(found.element.querySelectorAll(DRAGGABLE_QUERY));
+    if (!cardNodes.length) {
+      const columnRoot =
+        found.element instanceof HTMLElement ? findColumnRootFromDroppable(found.element) : found.element;
+      cardNodes = Array.from(columnRoot.querySelectorAll(DRAGGABLE_QUERY));
+    }
+
     const seen = new Set();
     const entries = [];
 
     cardNodes.forEach((cardNode) => {
-      const draggableId = String(cardNode.getAttribute("data-rbd-draggable-id") || "").trim();
-      if (!draggableId || seen.has(draggableId)) {
+      const rawId = getDraggableId(cardNode);
+      const fallbackId = `fallback:${normalize(textFromCard(cardNode)).replace(/[^a-z0-9а-яіїєґ _-]/gi, "").slice(0, 80)}`;
+      const draggableId = rawId || fallbackId;
+      if (seen.has(draggableId)) {
         return;
       }
 
