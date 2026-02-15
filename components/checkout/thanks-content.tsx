@@ -4,7 +4,6 @@ import Link from "next/link";
 import { CheckCircle2, Clock3 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { trackPurchase } from "@/lib/pixels";
 import { useCartStore } from "@/lib/store/cart-store";
 
 function toNumber(value: string | null): number {
@@ -50,10 +49,9 @@ export function ThanksContent() {
       return;
     }
 
-    trackPurchase({ total, quantity });
     clearCart();
     trackedRef.current = true;
-  }, [clearCart, quantity, ready, total]);
+  }, [clearCart, ready]);
 
   return (
     <section className="container py-8">

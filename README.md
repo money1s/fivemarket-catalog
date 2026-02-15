@@ -183,7 +183,12 @@ NETLIFY_BUILD_HOOK_URL=https://api.netlify.com/build_hooks/your-hook-id
 
 ## Пікселі / аналітика
 
-Підтримано умовне підключення (лише якщо env задані):
+Налаштування для сторінки `thanks` можна робити в одному файлі:
+- `/Users/andrii/Desktop/fivemarket/app/thanks/page.tsx`
+- там є шаблон для `2x Facebook Pixel`, `TikTok Pixel`, `Google Ads`
+- там же задаються conversion events для `thanks`
+
+Глобальні пікселі (через env, fallback):
 
 - `NEXT_PUBLIC_META_PIXEL_ID`
 - `NEXT_PUBLIC_TIKTOK_PIXEL_ID`

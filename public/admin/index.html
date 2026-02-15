@@ -145,6 +145,81 @@
         };
 
         const normalize = (value) => String(value || "").replace(/\s+/g, " ").trim().toLowerCase();
+        const wait = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+        const setButtonsBusy = (busy) => {
+          [workflowBtn, deployBtn, publishNowBtn].forEach((button) => {
+            if (button instanceof HTMLButtonElement) {
+              button.disabled = busy;
+              button.style.opacity = busy ? "0.7" : "1";
+              button.style.cursor = busy ? "wait" : "pointer";
+            }
+          });
+        };
+
+        const isAdminPanelButton = (button) =>
+          button.classList.contains("fm-admin-tools__workflow") ||
+          button.classList.contains("fm-admin-tools__deploy") ||
+          button.classList.contains("fm-admin-tools__publish-now");
+
+        const isPublishButton = (button) => {
+          if (!(button instanceof HTMLButtonElement)) {
+            return false;
+          }
+
+          if (isAdminPanelButton(button)) {
+            return false;
+          }
+
+          if (button.disabled || button.offsetParent === null) {
+            return false;
+          }
+
+          const text = normalize(button.textContent || "");
+          return (
+            text === "опублікувати запис" ||
+            text === "publish entry" ||
+            text === "publish" ||
+            (text.includes("опублікувати") && !text.includes("зараз"))
+          );
+        };
+
+        const getPublishButtons = () =>
+          Array.from(document.querySelectorAll("button")).filter((button) =>
+            isPublishButton(button)
+          );
+
+        async function publishAllReadyEntries() {
+          if (!window.location.hash.includes("#/workflow")) {
+            window.location.hash = "#/workflow";
+            await wait(500);
+          }
+
+          let totalPublished = 0;
+          const maxCycles = 8;
+
+          for (let cycle = 1; cycle <= maxCycles; cycle += 1) {
+            const buttons = getPublishButtons();
+            if (!buttons.length) {
+              break;
+            }
+
+            for (const button of buttons) {
+              if (!(button instanceof HTMLButtonElement) || button.disabled || button.offsetParent === null) {
+                continue;
+              }
+
+              button.click();
+              totalPublished += 1;
+              setStatus(`Публікація записів: ${totalPublished}...`);
+              await wait(900);
+            }
+
+            await wait(1200);
+          }
+
+          return totalPublished;
+        }
 
         function detectWorkflowStateByText(text) {
           const normalized = normalize(text);
@@ -478,35 +553,32 @@
           window.location.hash = "#/workflow";
         });
 
-        publishNowBtn?.addEventListener("click", () => {
-          const publishButton = Array.from(document.querySelectorAll("button"))
-            .find((button) => {
-              if (!(button instanceof HTMLButtonElement)) {
-                return false;
-              }
-
-              if (button.classList.contains("fm-admin-tools__publish-now")) {
-                return false;
-              }
-
-              if (button.disabled || button.offsetParent === null) {
-                return false;
-              }
-
-              const text = normalize(button.textContent || "");
-              return text.includes("опублікувати") || text === "publish" || text.includes("publish");
-            });
-
-          if (!publishButton) {
-            setStatus("Кнопка «Опублікувати» не знайдена. Відкрийте картку товару.");
-            return;
+        publishNowBtn?.addEventListener("click", async () => {
+          setButtonsBusy(true);
+          try {
+            setStatus("Шукаю записи для публікації...");
+            const published = await publishAllReadyEntries();
+            if (!published) {
+              setStatus("У колонці «Готово» немає записів для публікації.");
+              return;
+            }
+            setStatus(`Готово: опубліковано ${published} запис(ів) у CMS.`);
+          } finally {
+            setButtonsBusy(false);
           }
-
-          publishButton.click();
-          setStatus("Опублікування запущено.");
         });
 
         deployBtn?.addEventListener("click", async () => {
+          setButtonsBusy(true);
+          try {
+            setStatus("Публікую записи з колонки «Готово»...");
+            const published = await publishAllReadyEntries();
+            if (published > 0) {
+              setStatus(`Опубліковано ${published}. Запускаю 1 деплой...`);
+            } else {
+              setStatus("Немає нових записів для публікації. Запускаю 1 деплой...");
+            }
+
           setStatus("Перевірка доступу...");
           const user = window.netlifyIdentity && window.netlifyIdentity.currentUser
             ? window.netlifyIdentity.currentUser()
@@ -546,9 +618,12 @@
               throw new Error(payload.error || "Помилка запуску деплою.");
             }
 
-            setStatus("Готово: деплой поставлено в чергу.");
+            setStatus("Готово: деплой поставлено в чергу. Оновіть сайт через 1-3 хвилини.");
           } catch (error) {
             setStatus(error instanceof Error ? error.message : "Не вдалося запустити деплой.");
+          }
+          } finally {
+            setButtonsBusy(false);
           }
         });
 
