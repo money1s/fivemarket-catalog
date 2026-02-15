@@ -189,6 +189,16 @@
             isPublishButton(button)
           );
 
+        async function withAutoConfirm(task) {
+          const originalConfirm = window.confirm;
+          window.confirm = () => true;
+          try {
+            return await task();
+          } finally {
+            window.confirm = originalConfirm;
+          }
+        }
+
         async function publishAllReadyEntries() {
           if (!window.location.hash.includes("#/workflow")) {
             window.location.hash = "#/workflow";
@@ -557,7 +567,7 @@
           setButtonsBusy(true);
           try {
             setStatus("Шукаю записи для публікації...");
-            const published = await publishAllReadyEntries();
+            const published = await withAutoConfirm(() => publishAllReadyEntries());
             if (!published) {
               setStatus("У колонці «Готово» немає записів для публікації.");
               return;
@@ -572,7 +582,7 @@
           setButtonsBusy(true);
           try {
             setStatus("Публікую записи з колонки «Готово»...");
-            const published = await publishAllReadyEntries();
+            const published = await withAutoConfirm(() => publishAllReadyEntries());
             if (published > 0) {
               setStatus(`Опубліковано ${published}. Запускаю 1 деплой...`);
             } else {
