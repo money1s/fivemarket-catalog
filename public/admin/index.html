@@ -268,9 +268,29 @@
           return false;
         }
 
-        function collectWorkflowEntryHashes() {
+        function collectReadyEntryHashes() {
           const droppables = Array.from(document.querySelectorAll("[data-rbd-droppable-id]"));
-          const roots = droppables.map((droppable) => findColumnRootFromDroppable(droppable));
+          const readyRoots = [];
+          const fallbackRoots = [];
+
+          droppables.forEach((droppable) => {
+            const root = findColumnRootFromDroppable(droppable);
+            const state = detectWorkflowStateByDroppableId(
+              droppable.getAttribute("data-rbd-droppable-id") || ""
+            );
+
+            fallbackRoots.push(root);
+            if (state === "ready") {
+              readyRoots.push(root);
+            }
+          });
+
+          const roots = readyRoots.length
+            ? readyRoots
+            : fallbackRoots.filter((root) => {
+                const text = normalize(root.textContent || "");
+                return text.includes("готово") || text.includes("ready");
+              });
 
           const hashes = [];
           const seen = new Set();
@@ -307,6 +327,48 @@
           });
 
           return hashes;
+        }
+
+        async function publishReadyEntryFromWorkflow(entryHash, index, total) {
+          if (!window.location.hash.includes("#/workflow")) {
+            window.location.hash = "#/workflow";
+            await wait(450);
+          }
+
+          const entryLink = document.querySelector(`a[href="${entryHash}"]`);
+          if (!(entryLink instanceof HTMLElement)) {
+            return false;
+          }
+
+          entryLink.scrollIntoView({ block: "center", behavior: "instant" });
+          entryLink.click();
+          await wait(220);
+
+          const publishReady = await waitFor(
+            () =>
+              Array.from(document.querySelectorAll("button")).some((button) =>
+                isPublishActionButton(button)
+              ),
+            5000,
+            120
+          );
+
+          if (!publishReady) {
+            return false;
+          }
+
+          const publishButton = Array.from(document.querySelectorAll("button")).find((button) =>
+            isPublishActionButton(button)
+          );
+
+          if (!(publishButton instanceof HTMLButtonElement)) {
+            return false;
+          }
+
+          setStatus(`Публікація ${index + 1}/${total}...`);
+          publishButton.click();
+          await wait(450);
+          return true;
         }
 
         const isSaveActionButton = (button) => {
@@ -377,22 +439,32 @@
           }
 
           await wait(400);
-          const workflowEntries = collectWorkflowEntryHashes();
-          if (!workflowEntries.length) {
+          const readyEntries = collectReadyEntryHashes();
+          if (!readyEntries.length) {
             return 0;
           }
 
           let totalPublished = 0;
 
-          for (let index = 0; index < workflowEntries.length; index += 1) {
-            const entryHash = workflowEntries[index];
-            setStatus(`Перевірка запису ${index + 1}/${workflowEntries.length}...`);
-            const published = await openEntryAndPublish(entryHash, index, workflowEntries.length);
+          for (let index = 0; index < readyEntries.length; index += 1) {
+            const entryHash = readyEntries[index];
+            setStatus(`Перевірка запису ${index + 1}/${readyEntries.length}...`);
+
+            let published = await publishReadyEntryFromWorkflow(
+              entryHash,
+              index,
+              readyEntries.length
+            );
+
+            if (!published) {
+              published = await openEntryAndPublish(entryHash, index, readyEntries.length);
+            }
+
             if (published) {
               totalPublished += 1;
             }
 
-            if (index < workflowEntries.length - 1) {
+            if (index < readyEntries.length - 1) {
               window.location.hash = "#/workflow";
               await wait(700);
             }
