@@ -888,7 +888,7 @@
     window.netlifyIdentity.on("init", (user) => {
       if (!user) {
         window.netlifyIdentity.on("login", () => {
-          window.location.href = "/admin/";
+          window.location.href = "/admin/index.html";
         });
       }
     });
