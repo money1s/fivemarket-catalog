@@ -6,7 +6,7 @@
   }
   window.__fmToolsInited = true;
 
-  const TOOLS_VERSION = "2026-02-15-3";
+  const TOOLS_VERSION = "2026-02-15-4";
   const STORAGE_KEY_HOOK = "fm_netlify_build_hook";
 
   const ROUTE_WORKFLOW = "#/workflow";
@@ -737,32 +737,61 @@
     return node instanceof HTMLElement && !!node.closest("#fm-workflow-tools");
   }
 
-  function collectVisibleButtons() {
-    return Array.from(document.querySelectorAll("button")).filter(
-      (button) => button instanceof HTMLButtonElement && isVisibleElement(button) && !inToolsPanel(button)
-    );
-  }
+  function elementMatchesPatterns(element, patterns) {
+    if (!(element instanceof HTMLElement)) {
+      return false;
+    }
 
-  function buttonMatches(button, patterns) {
-    const text = normalize(button.textContent || "");
-    const ariaLabel = normalize(button.getAttribute("aria-label") || "");
+    const text = normalize(element.textContent || "");
+    const ariaLabel = normalize(element.getAttribute("aria-label") || "");
     const combined = `${text} ${ariaLabel}`;
     return patterns.some((pattern) => combined.includes(pattern));
   }
 
-  function findPublishButton() {
-    return collectVisibleButtons().find((button) => {
-      if (!buttonMatches(button, PUBLISH_TEXT_PATTERNS)) {
-        return false;
-      }
+  function isPublishControl(element) {
+    if (!(element instanceof HTMLElement) || !isVisibleElement(element) || inToolsPanel(element)) {
+      return false;
+    }
 
-      const text = normalize(button.textContent || "");
-      if (text.includes("зараз") || text.includes("now")) {
-        return false;
-      }
+    if (!elementMatchesPatterns(element, PUBLISH_TEXT_PATTERNS)) {
+      return false;
+    }
 
-      return true;
-    }) || null;
+    const text = normalize(element.textContent || "");
+    if (text.includes("зараз") || text.includes("now")) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function findPublishButtonInRoot(root) {
+    const controls = Array.from(root.querySelectorAll("button, [role='button']"));
+    return controls.find((control) => isPublishControl(control)) || null;
+  }
+
+  function findEditorPublishButton() {
+    if (!isEditorRoute()) {
+      return null;
+    }
+
+    return findPublishButtonInRoot(document.body);
+  }
+
+  function findCardPublishButton(entryElement) {
+    if (!(entryElement instanceof HTMLElement)) {
+      return null;
+    }
+
+    const controls = Array.from(entryElement.querySelectorAll("button, [role='button']"));
+    return controls.find((control) => isPublishControl(control)) || null;
+  }
+
+  function buttonMatches(button, patterns) {
+    if (!(button instanceof HTMLButtonElement)) {
+      return false;
+    }
+    return elementMatchesPatterns(button, patterns);
   }
 
   function findConfirmButtonInDialog() {
@@ -837,7 +866,7 @@
       if (state.stopRequested) {
         return true;
       }
-      return isEditorRoute() || !!findPublishButton();
+      return isEditorRoute();
     }, 7000, 140);
 
     if (!opened || state.stopRequested) {
@@ -889,6 +918,37 @@
 
   async function publishSingleEntry(entry) {
     const startedAt = Date.now();
+    const cardEntry = scanReadyEntries();
+    if (cardEntry.ok) {
+      const current = cardEntry.entries.find((item) => item.id === entry.id);
+      if (current && current.element instanceof HTMLElement) {
+        const cardPublishButton = findCardPublishButton(current.element);
+        if (cardPublishButton) {
+          const baselineEventCount = state.publishEventCount;
+          clickElement(cardPublishButton);
+          await sleep(220);
+
+          let confirmInteractions = 0;
+          while (confirmInteractions < MAX_CONFIRM_INTERACTIONS) {
+            const confirmButton = findConfirmButtonInDialog();
+            if (!confirmButton) {
+              break;
+            }
+
+            clickElement(confirmButton);
+            confirmInteractions += 1;
+            await sleep(220);
+          }
+
+          if (findConfirmButtonInDialog()) {
+            return { ok: false, error: "loop guard: too many confirmations" };
+          }
+
+          return waitForPublishResult(entry, baselineEventCount, startedAt);
+        }
+      }
+    }
+
     let openAttempts = 0;
 
     while (openAttempts <= MAX_EDITOR_OPEN_RETRY) {
@@ -903,7 +963,7 @@
       }
     }
 
-    const publishButton = findPublishButton();
+    const publishButton = findEditorPublishButton();
     if (!publishButton) {
       return { ok: false, error: "Кнопку Publish не знайдено" };
     }
