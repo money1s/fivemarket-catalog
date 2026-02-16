@@ -83,10 +83,8 @@ backend:
 
 CMS працює у режимі `publish_mode: editorial_workflow`.
 
-Додатково в `/admin` реалізовано UX-шар:
-- кольорові статуси в списку `Зміст`: `Опублікована`, `Готові до публікації`, `Чорновик`
-- окрема мітка `Приховано` для товарів із вимкненим `Показувати на сайті`
-- кнопка `Опублікувати зараз` у плаваючій панелі для швидкого кліку по native Publish
+У `/admin` є мінімальна кнопка:
+- `Опублікувати все` — серверно публікує всі збережені `cms/products/*` картки в `main` одним комітом, що запускає один production deploy.
 
 ## Опційно: переключення Decap CMS на GitHub backend
 
@@ -137,8 +135,16 @@ CRM_DELIVERY_ID=1
 CRM_PAYMENT_ID=4
 CRM_DEFAULT_EMAIL=
 
-# ручний one-click deploy із /admin
-NETLIFY_BUILD_HOOK_URL=https://api.netlify.com/build_hooks/your-hook-id
+# one-click publish all із /admin (git-based)
+GITHUB_OWNER=your-github-user-or-org
+GITHUB_REPO=your-repo-name
+GITHUB_TOKEN=github_pat_xxx_with_contents_write
+
+# необовʼязково: список дозволених email через кому
+CMS_PUBLISH_ALLOWED_EMAILS=you@example.com,manager@example.com
+
+# необовʼязково: після публікації видаляти cms/products/* гілки
+CMS_DELETE_MERGED_BRANCHES=true
 ```
 
 Форма передає у функцію та далі в CRM:
@@ -149,31 +155,34 @@ NETLIFY_BUILD_HOOK_URL=https://api.netlify.com/build_hooks/your-hook-id
 
 `products` формується зі всієї корзини у форматі LP CRM (`product_id=crm_id`, `price`, `count`) для кожного товару.
 
-## Як економити кредити Netlify
+## One-click публікація одним деплоєм
 
 У проєкті вже додано:
 - `/Users/andrii/Desktop/fivemarket/netlify.toml` -> `ignore = "bash scripts/netlify-ignore-build.sh"`
 - `/Users/andrii/Desktop/fivemarket/scripts/netlify-ignore-build.sh`
+- `/Users/andrii/Desktop/fivemarket/netlify/functions/publish-all-ready.js`
 
 Скрипт пропускає:
 - `deploy-preview` і `branch-deploy`
 - автоматичні `production` збірки від CMS-комітів
 
-Тобто зміни з CMS можна накопичувати, а потім випускати одним деплоєм.
+Тобто зміни з CMS можна накопичувати, а потім випускати одним production деплоєм.
 
 Рекомендований процес:
-1. Редагуйте товари в `Workflow`, переведіть потрібні картки у `Ready`.
-2. Публікуйте готові картки.
-3. Натискайте кнопку `1 деплой` у `/admin` (панель праворуч унизу), щоб запустити один production deploy на всю пачку змін.
+1. Створюйте/зберігайте товари в CMS (вони зʼявляються у `cms/products/*`).
+2. Коли пачка готова, натисніть кнопку `Опублікувати все` в `/admin`.
+3. Функція зіллє всі `cms/products/*` у `main` одним комітом.
+4. Netlify виконає один deploy цього коміту.
 
 Примітка:
 - у колекції `Товари` є швидкі фільтри `На сайті` / `Приховані`
 - перемикач `Показувати на сайті` працює як “Сховати без видалення”
 
-Як увімкнути кнопку `1 деплой`:
-1. Netlify -> Site configuration -> Build & deploy -> Build hooks -> `Add build hook`.
-2. Скопіюйте URL hook у змінну середовища `NETLIFY_BUILD_HOOK_URL`.
-3. Зробіть redeploy сайту один раз.
+Як увімкнути кнопку `Опублікувати все`:
+1. Netlify -> Site configuration -> Environment variables.
+2. Додайте `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_TOKEN`.
+3. Опційно додайте `CMS_PUBLISH_ALLOWED_EMAILS` та `CMS_DELETE_MERGED_BRANCHES`.
+4. Зробіть один redeploy сайту після додавання env.
 
 ## Де редагувати товари
 
@@ -207,6 +216,6 @@ NETLIFY_BUILD_HOOK_URL=https://api.netlify.com/build_hooks/your-hook-id
 - `/Users/andrii/Desktop/fivemarket/lib/pixels.ts` - universal pixel helper
 - `/Users/andrii/Desktop/fivemarket/components/checkout/checkout-form.tsx` - HTML POST checkout
 - `/Users/andrii/Desktop/fivemarket/public/admin/config.yml` - Decap CMS workflow + структурування списку товарів
-- `/Users/andrii/Desktop/fivemarket/public/admin/index.html` - панель `Workflow / Опублікувати зараз / 1 деплой` + кастомні статуси в адмінці
-- `/Users/andrii/Desktop/fivemarket/netlify/functions/manual-deploy.js` - secure trigger Netlify build hook (для авторизованого Identity користувача)
+- `/Users/andrii/Desktop/fivemarket/public/admin/index.html` - мінімальна адмін-панель з кнопкою `Опублікувати все`
+- `/Users/andrii/Desktop/fivemarket/netlify/functions/publish-all-ready.js` - git-based масова публікація `cms/products/*` у `main` одним комітом
 - `/Users/andrii/Desktop/fivemarket/scripts/netlify-ignore-build.sh` - пропуск не-production збірок для економії кредитів
