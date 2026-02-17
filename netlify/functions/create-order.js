@@ -119,6 +119,22 @@ function resolveSafeRedirect(rawRedirect, fallbackUrl) {
   }
 }
 
+function normalizeCrmSite(value) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "";
+  }
+
+  try {
+    const parsed = new URL(raw);
+    return parsed.host || raw;
+  } catch {
+    return raw
+      .replace(/^https?:\/\//i, "")
+      .replace(/\/+$/, "");
+  }
+}
+
 exports.handler = async function handler(event) {
   if (event.httpMethod !== "POST") {
     return {
@@ -146,6 +162,13 @@ exports.handler = async function handler(event) {
   const crmDelivery = process.env.CRM_DELIVERY_ID || process.env.NEXT_PUBLIC_CRM_DELIVERY_ID || form.delivery || "1";
   const crmPayment = process.env.CRM_PAYMENT_ID || process.env.NEXT_PUBLIC_CRM_PAYMENT_ID || form.payment || "4";
   const crmEmail = process.env.CRM_DEFAULT_EMAIL || process.env.NEXT_PUBLIC_CRM_DEFAULT_EMAIL || form.email || "";
+  const crmSite = normalizeCrmSite(
+    process.env.CRM_SITE ||
+      process.env.NEXT_PUBLIC_CRM_SITE ||
+      form.site ||
+      host ||
+      ""
+  );
 
   if (!crmEndpoint || !crmApiKey) {
     return {
@@ -195,6 +218,7 @@ exports.handler = async function handler(event) {
   appendIfPresent(crmParams, "delivery_adress", form.delivery_adress || form.office_address || "");
   appendIfPresent(crmParams, "payment", crmPayment);
   appendIfPresent(crmParams, "sender", encodedSenderPayload);
+  appendIfPresent(crmParams, "site", crmSite);
   appendIfPresent(crmParams, "utm_source", form.utm_source || "");
   appendIfPresent(crmParams, "utm_medium", form.utm_medium || "");
   appendIfPresent(crmParams, "utm_term", form.utm_term || "");
