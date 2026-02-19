@@ -127,11 +127,10 @@ function normalizeCrmSite(value) {
 
   try {
     const parsed = new URL(raw);
-    return parsed.host || raw;
+    parsed.hash = "";
+    return parsed.toString();
   } catch {
-    return raw
-      .replace(/^https?:\/\//i, "")
-      .replace(/\/+$/, "");
+    return raw;
   }
 }
 
@@ -163,9 +162,9 @@ exports.handler = async function handler(event) {
   const crmPayment = process.env.CRM_PAYMENT_ID || process.env.NEXT_PUBLIC_CRM_PAYMENT_ID || form.payment || "4";
   const crmEmail = process.env.CRM_DEFAULT_EMAIL || process.env.NEXT_PUBLIC_CRM_DEFAULT_EMAIL || form.email || "";
   const crmSite = normalizeCrmSite(
-    process.env.CRM_SITE ||
+    form.site ||
+      process.env.CRM_SITE ||
       process.env.NEXT_PUBLIC_CRM_SITE ||
-      form.site ||
       host ||
       ""
   );

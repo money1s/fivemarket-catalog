@@ -80,6 +80,18 @@ export function CheckoutForm() {
 
     return `${siteOrigin}/thanks/?${params.toString()}`;
   }, [fullName, phone, siteOrigin, total, totalQty]);
+  const crmSiteUrl = useMemo(() => {
+    const cleanReferrer = referrer.trim();
+    if (siteOrigin && cleanReferrer.startsWith(siteOrigin)) {
+      return cleanReferrer;
+    }
+
+    if (siteOrigin && requestUri) {
+      return `${siteOrigin}${requestUri}`;
+    }
+
+    return cleanReferrer;
+  }, [referrer, requestUri, siteOrigin]);
 
   useEffect(() => {
     if (hasTrackedRef.current || totalQty <= 0) {
@@ -207,6 +219,7 @@ export function CheckoutForm() {
           <input type="hidden" name="delivery_adress" value="" />
           <input type="hidden" name="payment" value={CRM_PAYMENT_ID} />
           <input type="hidden" name="sender" value={senderInfo} />
+          <input type="hidden" name="site" value={crmSiteUrl} />
           <input type="hidden" name="name" value={fullName.trim()} />
           <input type="hidden" name="price" value={total} />
           <input type="hidden" name="id" value={firstCrmId} />
